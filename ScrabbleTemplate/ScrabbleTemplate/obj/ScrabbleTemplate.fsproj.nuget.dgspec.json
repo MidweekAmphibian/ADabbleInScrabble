@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {}
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {}
   },
   "projects": {
-    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
+        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
         "projectName": "ScrabbleBot",
-        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
+        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
         "packagesPath": "/Users/juliusdalsgaardbertelsen/.nuget/packages/",
-        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/obj/",
+        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/juliusdalsgaardbertelsen/.nuget/NuGet/NuGet.Config"
@@ -66,14 +66,14 @@
         }
       }
     },
-    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
         "projectName": "ScrabbleTemplate",
-        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
         "packagesPath": "/Users/juliusdalsgaardbertelsen/.nuget/packages/",
-        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/obj/",
+        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/juliusdalsgaardbertelsen/.nuget/NuGet/NuGet.Config"
@@ -89,8 +89,8 @@
           "net7.0": {
             "targetAlias": "net7.0",
             "projectReferences": {
-              "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
-                "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj"
+              "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
+                "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj"
               }
             }
           }

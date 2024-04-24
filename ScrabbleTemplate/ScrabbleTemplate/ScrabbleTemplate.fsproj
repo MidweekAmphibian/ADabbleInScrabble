@@ -29,11 +29,6 @@
       <HintPath>..\dlls\Oxyphenbutazone.dll</HintPath>
     </Reference>
 
-    <Reference Include="ScrabbleBot, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\ScrabbleBot\bin\Debug\net7.0\ScrabbleBot.dll</HintPath>
-    </Reference>
-
-
     <Reference Include="ScrabbleServer, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\dlls\ScrabbleServer.dll</HintPath>
     </Reference>

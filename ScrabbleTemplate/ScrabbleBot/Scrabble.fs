@@ -44,13 +44,15 @@ module State =
     // information, such as number of players, player turn, etc.
 
     type state =
-        { board: Parser.board
+        { board: Map<(int * int), (uint32 * (char * int))>
           dict: ScrabbleUtil.Dictionary.Dict
           playerNumber: uint32
           hand: MultiSet.MultiSet<uint32> }
 
-    let mkState b d pn h =
-        { board = b
+    let boardMap = Map<(int * int), uint32>
+
+    let mkState (boardMap: Map<(int * int), (uint32 * (char * int))>) d pn h =
+        { board = boardMap
           dict = d
           playerNumber = pn
           hand = h }
@@ -60,8 +62,11 @@ module State =
     let playerNumber st = st.playerNumber
     let hand st = st.hand
 
+
 module Scrabble =
     open System.Threading
+
+    type Board = Map<(int * int), (uint32 * (char * int))> //Does this belong here? Should there be a type like this at all??? Update: This is definitely wrong
 
     let playGame cstream pieces (st: State.state) =
 
@@ -73,7 +78,22 @@ module Scrabble =
                 "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
             let input = System.Console.ReadLine()
-            let move = RegEx.parseMove input
+            let move: ((int * int) * (uint32 * (char * int))) list = RegEx.parseMove input
+
+            // Update the internal state (the map representing the board)
+
+            //This function takes a list of tuples ((x, y), (pieceId, (pieceChar, charvalue)) which make up a move.
+            //It folds through the list updating the map with the elements of the tuples, with the board map from the current state as the initial accumulator
+            //It then creates a new state with the updated board as board.
+            //let toMap move (st: State.state) =
+            //    let updatedBoard =
+            //        move
+            //        |> List.fold
+            //            (fun (m: Map<(int * int), (uint32 * (char * int))>) (k: (int * int), v) -> m.Add(k, v))
+            //            st.board
+            //
+            //    { st with board = updatedBoard }
+
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
@@ -81,8 +101,12 @@ module Scrabble =
             let msg = recv cstream
             debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
+
             match msg with
             | RCM(CMPlaySuccess(ms, points, newPieces)) ->
+
+
+
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
                 let st' = st // This state needs to be updated
                 aux st'
@@ -131,7 +155,8 @@ module Scrabble =
 
         //let dict = dictf true // Uncomment if using a gaddag for your dictionary
         let dict = dictf false // Uncomment if using a trie for your dictionary
-        let board = Parser.mkBoard boardP
+
+        let board: Board = Map.empty
 
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 

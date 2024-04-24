@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "NIvjmrgc60/Yv3Zroh0SzphPcIiZ305lXQMUeV0bvq6zv+9eDkwS+lkGa2w4njAkjnv9yVpSD7edp/Pf9YJqCg==",
+  "dgSpecHash": "skZz5gsAYTCJm+VlmFynuZ8WTZO5j12HsrDu0dYD0fkMA1bYjieyERYztfyWUPxJgVx81N0PL9asgI+cDGUgWg==",
   "success": true,
-  "projectFilePath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+  "projectFilePath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
   "expectedPackageFiles": [
     "/Users/juliusdalsgaardbertelsen/.nuget/packages/fparsec/1.1.1/fparsec.1.1.1.nupkg.sha512",
     "/Users/juliusdalsgaardbertelsen/.nuget/packages/fsharp.core/7.0.200/fsharp.core.7.0.200.nupkg.sha512",
