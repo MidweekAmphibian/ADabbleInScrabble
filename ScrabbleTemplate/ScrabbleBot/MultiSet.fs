@@ -16,9 +16,16 @@ let contains (a: 'a) (MS(s): MultiSet<'a>) = s |> Map.containsKey a
 let numItems (a: 'a) (MS(s): MultiSet<'a>) =
     Map.tryFind a s |> Option.defaultValue (0u)
 
-let add (a: 'a) (n: uint32) (MS(s): MultiSet<'a>) = MS(s |> Map.add a n)
+let add (a: 'a) (n: uint32) (MS(s): MultiSet<'a>) =
+    match Map.tryFind a s with
+    | Some count -> MS(Map.add a (count + n) s)
+    | None -> MS(Map.add a n s)
 
-let addSingle (a: 'a) (MS(s): MultiSet<'a>) = MS(s |> Map.add a 1u)
+
+let addSingle (a: 'a) (MS(s): MultiSet<'a>) =
+    match Map.tryFind a s with
+    | Some count -> MS(Map.add a (count + 1u) s)
+    | None -> MS(Map.add a 1u s)
 
 let remove (a: 'a) (n: uint32) (MS(s): MultiSet<'a>) : MultiSet<'a> =
     let occurrences = numItems a (MS(s))
@@ -28,7 +35,7 @@ let remove (a: 'a) (n: uint32) (MS(s): MultiSet<'a>) : MultiSet<'a> =
     else
         MS(s |> Map.remove a)
 
-let removeSingle (a: 'a) (MS(s): MultiSet<'a>) : MultiSet<'a> = remove a 1u (MS(s))
+let removeSingle (a: 'a) (MS(s): MultiSet<'a>) : MultiSet<'a> = remove a 1u (MS(s)) //OBS?
 
 
 let fold (fold: 'b -> 'a -> uint32 -> 'b) (x: 'b) (MS(s): MultiSet<'a>) = Map.fold fold x s

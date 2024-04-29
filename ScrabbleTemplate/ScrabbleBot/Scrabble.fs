@@ -43,62 +43,56 @@ module State =
     // but it could, potentially, keep track of other useful
     // information, such as number of players, player turn, etc.
 
+    let boardMap = Map<coord, (uint32 * (char * int))> //We aren't using the parser for the board, we just use a simple coordinate system represented by a map.
+
     type state =
-        { board: Map<(int * int), (uint32 * (char * int))>
+        { lettersOnBoard: Map<coord, (uint32 * (char * int))>
           dict: ScrabbleUtil.Dictionary.Dict
           playerNumber: uint32
           hand: MultiSet.MultiSet<uint32>
           numOfPlayers: uint32
-          playerTurn: uint32}
+          playerTurn: uint32 }
 
-    let boardMap = Map<(int * int), uint32>
-
-    let mkState (boardMap: Map<(int * int), (uint32 * (char * int))>) d pn h ps pt =
-        { board = boardMap
+    let mkState (boardMap: Map<coord, (uint32 * (char * int))>) d pn h ps pt =
+        { lettersOnBoard = boardMap
           dict = d
           playerNumber = pn
           hand = h
           numOfPlayers = ps
           playerTurn = pt }
 
-    let board st = st.board
+    let lettersOnBoard st = st.lettersOnBoard
     let dict st = st.dict
     let playerNumber st = st.playerNumber
-    let hand st = st.hand
     let numOfPlayers st = st.numOfPlayers
+    let hand st = st.hand
     let playerTurn st = st.playerTurn
 
 module Scrabble =
     open System.Threading
 
-    type Board = Map<(int * int), (uint32 * (char * int))> //Does this belong here? Should there be a type like this at all??? Update: This is definitely wrong
-
     let playGame cstream pieces (st: State.state) =
 
-        let rec aux (st: State.state) =
-            Print.printHand pieces (State.hand st)
+        let rec aux (st: State.state) (thisPlayersTurn: bool) =
 
-            // remove the force print when you move on from manual input (or when you have learnt the format)
-            forcePrint
-                "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+            if (thisPlayersTurn) then
+
+                // ##### THIS PLAYER'S TURN #####
+
+                // First we check if this is the first move
+
+
+
+                Print.printHand pieces (State.hand st)
+                // remove the force print when you move on from manual input (or when you have learnt the format)
+                forcePrint
+                    "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+
+                debugPrint (sprintf "It's your turn, player %d. \n" (State.playerNumber st))
+
 
             let input = System.Console.ReadLine()
-            let move: ((int * int) * (uint32 * (char * int))) list = RegEx.parseMove input
-
-            // Update the internal state (the map representing the board)
-
-            //This function takes a list of tuples ((x, y), (pieceId, (pieceChar, charvalue)) which make up a move.
-            //It folds through the list updating the map with the elements of the tuples, with the board map from the current state as the initial accumulator
-            //It then creates a new state with the updated board as board.
-            //let toMap move (st: State.state) =
-            //    let updatedBoard =
-            //        move
-            //        |> List.fold
-            //            (fun (m: Map<(int * int), (uint32 * (char * int))>) (k: (int * int), v) -> m.Add(k, v))
-            //            st.board
-            //
-            //    { st with board = updatedBoard }
-
+            let move: (coord * (uint32 * (char * int))) list = RegEx.parseMove input
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
@@ -109,45 +103,91 @@ module Scrabble =
 
             match msg with
             | RCM(CMPlaySuccess(ms, points, newPieces)) ->
-            // Extract piece IDs from each move
-                let playedPieces = 
-                    ms 
-                    |> List.map (fun (_, (uid, (char, int) )) -> (uid,(char, int)))
-                let playedPieceIds =
-                    ms
-                    |> List.map (fun (_, (uid: uint32, _)) -> uid)
-
-    // Update the state by removing played pieces from the hand
-                let updatedHand = 
-                    playedPieceIds 
-                    |> List.fold (fun hand (pieceId : uint32) ->
-                        MultiSet.removeSingle pieceId hand
-                    ) (State.hand st)
-
-                   // newPieces
-                   // |> List.fold ()
-
-                debugPrint("UPDATED THE HAND OH BOY: ")     
-                let st' = { st with hand = updatedHand } // Update the state with the new hand
-    // Continue the game with the updated state
-                aux st'
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
+
+                // UPDATE THE HAND:
+                // Extract piece IDs from each move
+                let playedPieceIds = ms |> List.map (fun (_, (uid: uint32, (_, _))) -> uid)
+
+                // make new list with played pieces from pieces on hand
+                let handWithRemovedPieces =
+                    playedPieceIds
+                    |> List.fold (fun hand (pieceId: uint32) -> MultiSet.removeSingle pieceId hand) (State.hand st)
+                // add the new pieces to this list
+                let handWithAddedAndRemovedPieces =
+                    newPieces
+                    |> List.fold
+                        (fun handWithRemovedPieces (pieceID: uint32, count: uint32) ->
+                            MultiSet.add pieceID count handWithRemovedPieces)
+                        (handWithRemovedPieces)
+                // At the end, set the State hand to this list.
+
+                //UPDATE THE BOARD:
+                let playedPieces = ms |> List.map (fun (coord, (_, (char, _))) -> (coord, char))
+
+                let updatedBoard =
+                    List.fold
+                        (fun acc (coord, ((char, points))) -> Map.add coord (char, points) acc)
+                        st.lettersOnBoard
+                        ms
+
+                //printfn "Board State:"
+                //updatedBoard
+                //|> Map.iter (fun coord (pieceId, (char, points)) ->
+                //    printfn "Coordinate (%s): %c (%d points)" (coord.ToString()) (char: char) points)
+
+
+                //UDPDATE THE PLAYER NUMBER:
+                let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
+
+                // UPDATE THE STATE WITH THE NEW INFO
+                let st' =
+                    { st with
+                        hand = handWithAddedAndRemovedPieces
+                        playerTurn = nextPlayer
+                        lettersOnBoard = updatedBoard
+
+                    } // Update the state with the new hand, board, player turn
+
+                // Continue the game with the updated state
+                aux st' (st.playerTurn = st.playerNumber)
+
             | RCM(CMPlayed(pid, ms, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = st // This state needs to be updated
-                aux st'
+
+                //UPDATE THE BOARD:
+                let playedPieces = ms |> List.map (fun (coord, (_, (char, _))) -> (coord, char))
+
+                let updatedBoard =
+                    List.fold
+                        (fun acc (coord, ((char, points))) -> Map.add coord (char, points) acc)
+                        st.lettersOnBoard
+                        ms
+
+                //UDPDATE THE PLAYER NUMBER:
+                let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
+
+                let st' =
+                    { st with
+                        playerTurn = nextPlayer
+                        lettersOnBoard = updatedBoard } // Update the state with the new board, player turn
+
+                aux st' (st.playerTurn = st.playerNumber)
             | RCM(CMPlayFailed(pid, ms)) ->
                 (* Failed play. Update your state *)
-                let st' = st // This state needs to be updated
-                aux st'
+                //UDPDATE THE PLAYER NUMBER:
+                let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
+                let st' = { st with playerTurn = nextPlayer } //Update the player turn
+
+                aux st' (st.playerTurn = st.playerNumber)
             | RCM(CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err ->
                 printfn "Gameplay Error:\n%A" err
-                aux st
+                aux st (st.playerTurn = st.playerNumber)
 
 
-        aux st
+        aux st (st.playerTurn = st.playerNumber)
 
     let startGame
         (boardP: boardProg)
@@ -178,8 +218,8 @@ module Scrabble =
         //let dict = dictf true // Uncomment if using a gaddag for your dictionary
         let dict = dictf false // Uncomment if using a trie for your dictionary
 
-        let board: Board = Map.empty
+        let lettersOnBoard = Map.empty
 
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState board dict playerNumber handSet numPlayers playerTurn)
+        fun () -> playGame cstream tiles (State.mkState lettersOnBoard dict playerNumber handSet numPlayers playerTurn)

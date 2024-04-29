@@ -1,28 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleTemplate\\ScrabbleTemplate.fsproj": {}
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {}
   },
   "projects": {
-    "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\ScrabbleBot.fsproj": {
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\ScrabbleBot.fsproj",
+        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
         "projectName": "ScrabbleBot",
-        "projectPath": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\ScrabbleBot.fsproj",
-        "packagesPath": "C:\\Users\\mariu\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\obj\\",
+        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj",
+        "packagesPath": "/Users/juliusdalsgaardbertelsen/.nuget/packages/",
+        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\mariu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/juliusdalsgaardbertelsen/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\sdk\\7.0.403\\FSharp\\library-packs": {},
+          "/usr/local/share/dotnet/sdk/7.0.400/FSharp/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -64,37 +62,35 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.403\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/7.0.400/RuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleTemplate\\ScrabbleTemplate.fsproj": {
+    "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
+        "projectUniqueName": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
         "projectName": "ScrabbleTemplate",
-        "projectPath": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleTemplate\\ScrabbleTemplate.fsproj",
-        "packagesPath": "C:\\Users\\mariu\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleTemplate\\obj\\",
+        "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/ScrabbleTemplate.fsproj",
+        "packagesPath": "/Users/juliusdalsgaardbertelsen/.nuget/packages/",
+        "outputPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleTemplate/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\mariu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/juliusdalsgaardbertelsen/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\sdk\\7.0.403\\FSharp\\library-packs": {},
+          "/usr/local/share/dotnet/sdk/7.0.400/FSharp/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net7.0": {
             "targetAlias": "net7.0",
             "projectReferences": {
-              "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\ScrabbleBot.fsproj": {
-                "projectPath": "C:\\Users\\mariu\\Documents\\GitHub\\ADabbleInScrabble\\ScrabbleTemplate\\ScrabbleBot\\ScrabbleBot.fsproj"
+              "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj": {
+                "projectPath": "/Users/juliusdalsgaardbertelsen/Documents/ITU/functionalprog/ScrabbleProject2/ADabbleInScrabble/ScrabbleTemplate/ScrabbleBot/ScrabbleBot.fsproj"
               }
             }
           }
@@ -137,7 +133,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.403\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/7.0.400/RuntimeIdentifierGraph.json"
         }
       }
     }

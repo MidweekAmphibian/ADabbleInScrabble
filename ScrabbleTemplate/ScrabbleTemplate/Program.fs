@@ -53,7 +53,7 @@ let main argv =
 
     // Uncomment this line to call your client
     let players =
-        [ ("ADabbleInScrabbleBot", dictionary, ScrabbleBot.Scrabble.startGame) ]
+        [ ("ADabbleInScrabbleBot1", dictionary, ScrabbleBot.Scrabble.startGame) ]
 
     //let players =
     //    spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
@@ -65,10 +65,3 @@ let main argv =
     System.Console.ReadLine() |> ignore
 
     0
-
-
-//Expected:
-//(string * (bool -> ScrabbleUtil.Dictionary.Dict) * (ScrabbleUtil.boardProg -> (bool -> ScrabbleUtil.Dictionary.Dict) -> uint32 -> uint32 -> uint32 -> (uint32 * uint32) list -> Map<uint32,ScrabbleUtil.tile> -> uint32 option -> System.Net.Sockets.NetworkStream -> unit -> unit)) list
-
-//Given:
-//                                          (string * (ScrabbleUtil.boardProg -> (bool -> ScrabbleUtil.Dictionary.Dict) -> uint32 -> uint32 -> uint32 -> (uint32 * uint32) list -> Map<uint32,ScrabbleUtil.tile> -> uint32 option -> 'a                             -> unit -> unit)) list
