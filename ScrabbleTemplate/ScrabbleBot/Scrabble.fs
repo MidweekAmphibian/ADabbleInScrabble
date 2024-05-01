@@ -68,6 +68,50 @@ module State =
     let hand st = st.hand
     let playerTurn st = st.playerTurn
 
+module FindWord =
+    open ScrabbleUtil
+    open MultiSet
+
+    let charFromUint32 (charIndex: uint32) =
+        let list = [ 'a' .. 'z' ]
+        let listWithWildcard = [ '_' ] @ list
+        listWithWildcard.[int (charIndex)]
+    let rec stepRecursively (availableLetters: MultiSet.MultiSet<uint32>) (playedLetters: MultiSet.MultiSet<uint32>) (dict: ScrabbleUtil.Dictionary.Dict) =
+        availableLetters 
+        |> MultiSet.fold (fun _ charId charAmount -> 
+            match Dictionary.step (charFromUint32 charId) dict with
+            | None -> None
+            | Some (isWord, newDict) ->
+                match isWord with 
+                | true -> Some playedLetters
+                | false -> 
+                    let newAvailableLetters =  availableLetters |> MultiSet.removeSingle charId
+                    let newPlayedLetters = playedLetters |> MultiSet.addSingle charId
+                    stepRecursively newAvailableLetters newPlayedLetters newDict) (None) 
+    
+        // Define the move type
+    type Move = (coord * (uint32 * (char * int))) list
+
+     // Define the function to generate a move
+    let generateMove (hand: MultiSet.MultiSet<uint32>) (dict: ScrabbleUtil.Dictionary.Dict) (board: Map<coord, (uint32 * (char * int))>) =
+        let playedLetters = MultiSet<uint32>.empty
+        let move = []
+        let word = stepRecursively hand playedLetters dict  
+        match word with 
+        | None -> failwith "Couldnt find word"
+        | Some (foundWord: MultiSet.MultiSet<uint32>) -> 
+            word
+            |> MultiSet.fold (fun coordAcc charId _ ->
+                coordAcc (charId()) ((0,0)))
+
+          
+
+
+    
+            
+                
+
+
 module Scrabble =
     open System.Threading
 
@@ -92,7 +136,7 @@ module Scrabble =
 
 
             let input = System.Console.ReadLine()
-            let move: (coord * (uint32 * (char * int))) list = RegEx.parseMove input
+            let move: (coord * (uint32 * (char * int))) list = FindWord.
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
