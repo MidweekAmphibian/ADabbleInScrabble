@@ -38,11 +38,14 @@ let remove (a: 'a) (n: uint32) (MS(s): MultiSet<'a>) : MultiSet<'a> =
 let removeSingle (a: 'a) (MS(s): MultiSet<'a>) : MultiSet<'a> = remove a 1u (MS(s)) //OBS?
 
 
-let fold (fold: 'b -> 'a -> uint32 -> 'b) (x: 'b) (MS(s): MultiSet<'a>) = Map.fold fold x s
+let fold f acc (MS(s)) = Map.fold f acc s
 let foldBack (foldback: 'a -> uint32 -> 'b -> 'b) (MS(s): MultiSet<'a>) (x: 'b) = Map.foldBack foldback s x
 
-let ofList (_: 'a list) : MultiSet<'a> = MS(Map.empty)
-let toList (_: MultiSet<'a>) : 'a list = []
+let ofList list =
+    List.fold (fun acc element -> addSingle element acc) empty list
+
+let toList multiSet =
+    foldBack (fun element count acc -> List.init (int32 count) (fun _ -> element) @ acc) multiSet []
 
 
 let map (_: 'a -> 'b) (_: MultiSet<'a>) : MultiSet<'b> = MS(Map.empty)
