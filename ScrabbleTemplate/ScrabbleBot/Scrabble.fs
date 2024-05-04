@@ -408,7 +408,10 @@ module FindWord =
         // That means we have to step down for each of the letters in the starting point and update the dict
 
         let (startingPointLength, wordDictSoFar) =
-            List.fold
+            debugPrint ("CONTINUING FROM A STARTING POINT")
+
+            piecesInStartingPoint
+            |> List.fold
                 (fun (index, dict) piece ->
                     let (_, (letter, _)) = piece
                     let nextStep = dict |> Dictionary.step letter
@@ -418,7 +421,9 @@ module FindWord =
                     else
                         (index, dict))
                 (0, dict)
-                piecesInStartingPoint
+
+
+        debugPrint ("Got this far")
 
         let availablePiecesWithInfo = getFullInformationMultiSet hand pieces
 
@@ -428,7 +433,6 @@ module FindWord =
             | Down -> (x, y + startingPointLength)
             | Left -> (x - startingPointLength, y)
             | Right -> (x + startingPointLength, y)
-
 
         findMoveRecursive
 
@@ -485,15 +489,20 @@ module FindWord =
                     element
                     (acc: ((Direction * coord) * (uint32 * (char * int)) list) list)
                     =
-
+                    debugPrint (" GOING THROUGH SORTED LIST LOOKING FOR A WORD TO PLAY")
                     let ((elementDirection, elementCoord), elementPiecesToPlay) = element
 
                     let (isWord, word: (uint32 * (char * int)) list) =
                         continueFromStartingPoint hand element lettersOnBoard dict pieces
 
                     match isWord with
-                    | true -> ((elementDirection, elementCoord), elementPiecesToPlay)
+                    | true ->
+                        debugPrint ("THIS HAPPEENED")
+                        ((elementDirection, elementCoord), elementPiecesToPlay)
+
                     | false ->
+                        debugPrint ("THAT HAPPEENED")
+
                         match acc with
                         | [] -> failwith "This should not happen....?"
                         | nextElement :: newAcc -> findFirstValidMoveFromSortedStartingPoints nextElement newAcc
