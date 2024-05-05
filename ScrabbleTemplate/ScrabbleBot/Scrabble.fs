@@ -120,15 +120,21 @@ module FindWord =
         // The idea is to keep moving in some direction from some start coordinate and keep going until there are no more pieces,
         // then return the pieces encountered, which will be the word.
 
+        //debugPrint ("NOW LOOKING IN DIRECTION : ")
+        //debugPrint ((string) direction)
+        //debugPrint (" AT COORDINATE ")
+        //debugPrint ((string) coord)
+
+
         let (x, y) = coord
 
         //First find the next coord in the direction
         let newCoord =
             match direction with
-            | Down -> (x + 1, y)
-            | Up -> (x - 1, y)
-            | Right -> (x, y + 1)
-            | Left -> (x, y - 1)
+            | Down -> (x, y + 1)
+            | Up -> (x, y - 1)
+            | Right -> (x + 1, y)
+            | Left -> (x - 1, y)
 
         //Look up the new coord and see if anything is there or not.
         match Map.tryFind newCoord lettersOnBoard with
@@ -141,6 +147,8 @@ module FindWord =
             match direction with
             | Down
             | Right ->
+                debugPrint ("AAAAAAAAAA")
+
                 lookInDirectionRec
                     lettersOnBoard
                     newCoord
@@ -148,6 +156,13 @@ module FindWord =
                     (foundWordAcc @ [ (pieceId, (letter, pointValue)) ])
             | Up
             | Left ->
+                //debugPrint (" FOUND ANOTHER CHARACTER WHILE LOOKING UP OR TO THE LEFT\n ")
+                //debugPrint (" NOW APPENDING ACCUMULATOR: THE NEW LENGTH IF THE ACCUMULATOR IS: ")
+                let newAcc = ([ (pieceId, (letter, pointValue)) ] @ foundWordAcc)
+                //debugPrint ((string) newAcc.Length)
+                //debugPrint ("\n")
+
+
                 lookInDirectionRec
                     lettersOnBoard
                     newCoord
@@ -156,13 +171,18 @@ module FindWord =
 
     let getStartingPoints lettersOnBoard =
 
-        let checkForStartingPointsAtCoord (lettersOnBoard: Map<coord, (uint32 * (char * int))>) (coord: coord) =
+        let checkForStartingPointsAtCoord
+            (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
+            (coord: coord)
+            (boardPiece: (uint32 * (char * int)))
+            =
             //This function is called while going over all the pieces on the board to find places where we can start a word.
             //In order to do this, we check the coordinates adjacent to this tile. If there is a free tile on some direction, that means we could potentially continue a word in that direction.
             //But we need to check everything that comes before in order to do that.
             //When we have done that we get a list of starting points for our new word which we can then go over.
 
 
+            //debugPrint ("\nFINDING STARTING POINTS!\n")
             let (x, y) = coord
 
             let directions = [ Down; Right ]
@@ -174,17 +194,22 @@ module FindWord =
                         (foundStartingPointsAcc: ((Direction * coord) * (uint32 * (char * int)) list) list)
                         (directionToLook: Direction) ->
                         // The accumulator has type since it keeps a list of starting points which are like words (and therefore are themselves also lists)
+
+                        //debugPrint ("NOW LOOKING FOR A FREE SPOT IN THIS DIRECTION: ")
+                        //debugPrint ((string) directionToLook)
+                        //debugPrint ("\n")
+
                         let checkAdjacentPiece =
                             match directionToLook with
-                            | Down -> (x - 1, y)
-                            | Right -> (x, y - 1)
+                            | Down -> (x, y + 1)
+                            | Right -> (x + 1, y)
                             | _ -> failwith "Invalid direction" //Shouldn't happen...
 
                         match Map.tryFind checkAdjacentPiece lettersOnBoard with
                         | None ->
                             // If there is no adjacent piece in this direction, we might be able to continue a word in this direction
                             // We keep looking in the opposite direction and return everything that comes before (word (or reverse word....) or just a letter) as a starting point along with a direction and coord
-
+                            //debugPrint ("\nTHERE IS A FREE SPOT: THAT MEANS WE CAN BUILD A WORD FROM HERE ")
                             //Get opposite direction:
                             let getOppositeDirection (direction: Direction) =
                                 match direction with
@@ -193,11 +218,19 @@ module FindWord =
                                 | _ -> direction //Shoudln't happen...
 
                             let oppositeDirection = getOppositeDirection directionToLook
+                            //debugPrint ("\n GIVEN THAT WE FOUND A FREE TILE IN THE DIRECTION ")
+                            //debugPrint ((string) directionToLook)
+                            //debugPrint ("\n WE NOW CHECK HOW MANY ELEMENTS ARE IN THE OPPOSITE DIRECTION: ")
+                            //debugPrint ((string) oppositeDirection)
+                            //debugPrint ("\n")
 
                             let startingPointInDir: (uint32 * (char * int)) list =
-                                lookInDirectionRec lettersOnBoard coord oppositeDirection []
+                                lookInDirectionRec lettersOnBoard coord oppositeDirection [ boardPiece ]
 
-                            foundStartingPointsAcc @ [ ((oppositeDirection, coord), startingPointInDir) ]
+                            //debugPrint ("\nTHERE ARE THIS MANY ELEMENTS IN THE FOUND STARTING POINT:  ")
+                            //debugPrint ((string) startingPointInDir.Length)
+                            debugPrint ((string) ((directionToLook, coord), startingPointInDir))
+                            foundStartingPointsAcc @ [ ((directionToLook, coord), startingPointInDir) ]
                         | Some _ ->
                             // If we do enounter an adjacent letter in the direction we are looking in, then we can't play a word in that direction from this point.
                             foundStartingPointsAcc)
@@ -212,7 +245,7 @@ module FindWord =
                 (coord: coord)
                 (boardPiece: uint32 * (char * int)) ->
                 let startingPointsAtCoord: ((Direction * coord) * (uint32 * (char * int)) list) list =
-                    checkForStartingPointsAtCoord lettersOnBoard coord
+                    checkForStartingPointsAtCoord lettersOnBoard coord boardPiece
 
                 foundStartingPointsAcc @ startingPointsAtCoord)
             []
@@ -249,27 +282,48 @@ module FindWord =
                 let coord = sprintf "%d %d %d%c%d" x y pieceId letter pointValue
                 let separator = if acc = "" then "" else " " //We avoid seperator for the first element here
                 let newAcc = acc + separator + coord
-
                 auxMove newAcc (if direction = Right then x + 1 else x) (if direction = Down then y + 1 else y) rest
 
-        auxMove "" (fst startCoord) (snd startCoord) word
+        let move = auxMove "" (fst startCoord) (snd startCoord) word
+
+        debugPrint ("\n\n THIS IS THE WORD INPUT: ")
+        debugPrint ((string) word)
+        debugPrint ("\n AND THIS IS THE STRING CREATED FROM IT: ")
+        debugPrint (move)
+        debugPrint ("\n\n")
+        move
+
 
     let rec findMoveRecursive
         (piecesOnHandWithInfo: MultiSet.MultiSet<uint32 * (Set<char * int>)>)
-        (builtWord: (uint32 * (char * int)) list)
+        //(builtWord: (uint32 * (char * int)) list)
+        (lettersPlayedSoFar: (uint32 * (char * int)) list)
         (dict: ScrabbleUtil.Dictionary.Dict)
         (coord: coord)
         (direction: Direction)
         (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
         (pieces: Map<uint32, Set<char * int>>)
+        (isContinuation: bool)
         =
-
+        debugPrint ("RECURSIVE FOLD IS CALLED!")
+        //if isContinuation then
+        //debugPrint ("\n")
+        //debugPrint ("NOW CONTINUING FROM A STARTING POINT")
+        //debugPrint ((string) builtWord)
+        //debugPrint ("THERE ARE THIS MANY PIECES ON THE HAND: ")
+        //let handList = piecesOnHandWithInfo |> MultiSet.toList
+        //debugPrint ((string) handList.Length)
+        //debugPrint ("\n")
+        //else
+        //debugPrint ("NOW STARTING FROM NOTHING")
         //Todo: Understand how we are meant to use the direction and coord in here? Especially direction....
         //Right now we fold through availablePiecesWithInfo. I wonder if we should
 
         //First, check what is at the current coordinate. If there is something there, we need to use that letter instead of the letters we have on our hand.
         let (letterAlreadyOnTile: (uint32 * (char * int)) option) =
 
+            //debugPrint ("\nNOW LOOKING UP THE FOLLOWING COORD: ")
+            //debugPrint ((string) coord)
             Map.tryFind coord lettersOnBoard
 
         let (availablePieces: MultiSet<uint32 * Set<char * int>>) =
@@ -293,7 +347,9 @@ module FindWord =
                     let (didIFindAWordInCharSet, longestWordInCharSet) =
                         charInfoSet
                         |> Set.fold
-                            (fun (isWord, longestWord) ((letter: char), (pointValue: int)) ->
+                            (fun
+                                (isWord, longestWord: (uint32 * (char * int)) list)
+                                ((letter: char), (pointValue: int)) ->
 
                                 //Step into the dictionary with the letter we are currently looking at.
                                 match (Dictionary.step letter dict) with
@@ -301,73 +357,119 @@ module FindWord =
                                 //In other words, we can built a longer word from this point using our letters on hand.
                                 //We get back a boolian isWord and a newDict.
                                 | Some(isWord: bool, newDict) ->
-
+                                    //debugPrint ("\nIT WAS POSSIBLE TO STEP DOWN INTO THE DICT WITH THE LETTER: ")
+                                    //debugPrint ((string) letter)
                                     let updatedAvailablePieces = MultiSet.removeSingle element piecesOnHandWithInfo
+                                    //debugPrint ("\nTHIS IS THE NEW HAND: ")
+                                    //let newHandList = updatedAvailablePieces |> MultiSet.toList
+                                    //debugPrint ((string) newHandList.Length)
 
-                                    let updatedBuiltWord = builtWord @ [ (pieceId, (letter, pointValue)) ]
+                                    //let updatedBuiltWord = builtWord @ [ (pieceId, (letter, pointValue)) ]
+                                    //debugPrint ("\nTHE UPDATED BUILT WORD IS: ")
+                                    //debugPrint ((string) updatedBuiltWord)
+
+                                    let updatedPlayedLetters =
+                                        lettersPlayedSoFar @ [ (pieceId, (letter, pointValue)) ]
+
 
                                     let (x, y) = coord
 
+
+                                    // //debugPrint ("\n\nTEST1\n\n")
+
                                     let newCoord =
                                         match direction with
-                                        | Down -> (x, y + 1)
-                                        | Right -> (x + 1, y)
-                                        | _ -> failwith "Invalid direction"
+                                        | Down ->
+                                            //debugPrint ("\n\nWE ARE MOVING DOWN. THE NEW COORDINATE IS :")
+                                            //debugPrint ((string) (x, y + 1))
+                                            //debugPrint ("\n\n")
+                                            (x, y + 1)
+                                        | Right ->
+                                            //debugPrint ("\n\nWE ARE MOVING RIGHT. THE NEW COORDINATE IS :")
+                                            // debugPrint ((string) (x, y + 1))
+                                            // debugPrint ("\n\n")
+                                            (x + 1, y)
+                                        | _ ->
+                                            // debugPrint ("FAIL!")
+                                            failwith "Invalid direction"
 
-                                    //OBS: We need to check if there is anything next to this coordinate on either side
+                                    // //OBS: We need to check if there is anything next to this coordinate on either side
 
-                                    //let getAdjacentCoordinate (x, y) direction =
-                                    //    match direction with
-                                    //    | Up -> (x, y - 1)
-                                    //    | Down -> (x, y + 1)
-                                    //    | Left -> (x - 1, y)
-                                    //    | Right -> (x + 1, y)
+                                    // let directionsToLookForAdjacentPieces =
+                                    //     match direction with
+                                    //     | Down -> (Left, Right)
+                                    //     | Right -> (Up, Down)
+                                    //     | _ -> failwith "Invalid direction" //Shouldn't happen ...
 
-                                    //let directionsToLookForAdjacentPieces =
-                                    //    match direction with
-                                    //    | Down -> (Left, Right)
-                                    //    | Right -> (Up, Down)
-                                    //    | _ -> failwith "Invalid direction" //Shouldn't happen ...
-
-                                    //let (firstDirection, secondDirection) = directionsToLookForAdjacentPieces
-                                    //let adjacentTileInFirstDirection = getAdjacentCoordinate (x, y) firstDirection
-
-                                    //let prefix =
-                                    //    match Map.tryFind adjacentTileInFirstDirection lettersOnBoard with
-                                    //    | Some _ ->
-                                    //        lookInDirectionRec
-                                    //            lettersOnBoard
-                                    //            adjacentTileInFirstDirection
-                                    //            firstDirection
-                                    //    | None -> failwith "test" //OBS FIX
+                                    // let getAdjacentCoordinate (x, y) direction =
+                                    //     match direction with
+                                    //     | Up -> (x, y - 1)
+                                    //     | Down -> (x, y + 1)
+                                    //     | Left -> (x - 1, y)
+                                    //     | Right -> (x + 1, y)
 
 
-                                    //let adjacentTileInSecondDirection = getAdjacentCoordinate (x, y) secondDirection
-                                    //
-                                    //let suffix =
-                                    //    match Map.tryFind adjacentTileInSecondDirection lettersOnBoard with
-                                    //    | Some _ ->
-                                    //        lookInDirectionRec
-                                    //            lettersOnBoard
-                                    //            adjacentTileInSecondDirection
-                                    //            secondDirection
-                                    //    | None -> failwith "test" //OBS FIX
+                                    // let (firstDirection, secondDirection) = directionsToLookForAdjacentPieces
+
+                                    // let adjacentTileInFirstDirectionCoord =
+                                    //     getAdjacentCoordinate (x, y) firstDirection
+
+                                    // let prefix =
+                                    //     match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
+                                    //     | Some _ ->
+                                    //         lookInDirectionRec
+                                    //             lettersOnBoard
+                                    //             adjacentTileInFirstDirectionCoord
+                                    //             firstDirection
+                                    //             []
+                                    //     | None -> []
 
 
+                                    // let adjacentTileInSecondDirectionCoord =
+                                    //     getAdjacentCoordinate (x, y) secondDirection
+
+                                    // let suffix =
+                                    //     match Map.tryFind adjacentTileInSecondDirectionCoord lettersOnBoard with
+                                    //     | Some _ ->
+                                    //         lookInDirectionRec
+                                    //             lettersOnBoard
+                                    //             adjacentTileInSecondDirectionCoord
+                                    //             secondDirection
+                                    //             []
+                                    //     | None -> failwith "test" //OBS FIX
+
+                                    // let pieceWithAdjacentPrefixAndSuffix =
+                                    //     prefix @ [ (pieceId, (letter, pointValue)) ] @ suffix
+
+                                    // debugPrint (
+                                    //     "\n\n THIS IS THE LETTER THAT HAD SOME ADJACENT STUFF WITH ALL THE ADJACENT STUff : "
+                                    // )
+
+                                    // debugPrint ((string) pieceWithAdjacentPrefixAndSuffix)
+
+                                    // //Next we check if this whole thing is a word. If so, we are ok to carry on from here, otherwise we need to indicate that this move is invalid.
+
+
+
+                                    //dict |> Dictionary.lookup
 
 
                                     //OBS: And also in the same direction that we are already going in case we end a word right before another character is there...)
 
 
+                                    // debugPrint ("\n PREPARING TO RECURSIVELY CALL MYSELF ...")
+
                                     let (childIsAWord, childWord) =
                                         findMoveRecursive
                                             updatedAvailablePieces
-                                            updatedBuiltWord
+                                            updatedPlayedLetters
                                             newDict
                                             newCoord
                                             direction
                                             lettersOnBoard
                                             pieces
+                                            isContinuation
+
 
                                     if childIsAWord then
                                         if List.length childWord > List.length longestWord then
@@ -375,7 +477,7 @@ module FindWord =
                                         else
                                             (true, longestWord)
                                     else if isWord then
-                                        (true, updatedBuiltWord)
+                                        (true, updatedPlayedLetters)
                                     else
                                         (false, [])
 
@@ -402,17 +504,25 @@ module FindWord =
         (pieces: Map<uint32, Set<char * int>>)
         =
 
-        let ((startingPointDirection, (x, y)), piecesInStartingPoint) = startingPoint
+        debugPrint ("\n THIS IS THE STARTING POINT THAT WE START FROM: ")
+        debugPrint ((string) startingPoint)
+        debugPrint ("\n\n\n")
+
+
+        let ((startingPointDirection, (x, y)), piecesInStartingPoint: (uint32 * (char * int)) list) =
+            startingPoint
 
         //We need to get the correct dict for continuing from the starting point.
         // That means we have to step down for each of the letters in the starting point and update the dict
+        // debugPrint ("NOW I AM IN THE CONTINUE FUNCTION: THE LIST OF STARTING POINTS HAS THIS MANY ELEMENTS: ")
+        // debugPrint ((string) piecesInStartingPoint.Length)
 
-        let (startingPointLength, wordDictSoFar) =
-            debugPrint ("CONTINUING FROM A STARTING POINT")
+        let (startingPointLength, newWordDict) =
 
             piecesInStartingPoint
             |> List.fold
                 (fun (index, dict) piece ->
+                    // debugPrint ("FOLD")
                     let (_, (letter, _)) = piece
                     let nextStep = dict |> Dictionary.step letter
 
@@ -423,7 +533,7 @@ module FindWord =
                 (0, dict)
 
 
-        debugPrint ("Got this far")
+        // debugPrint ("Got this far")
 
         let availablePiecesWithInfo = getFullInformationMultiSet hand pieces
 
@@ -434,25 +544,30 @@ module FindWord =
             | Left -> (x - startingPointLength, y)
             | Right -> (x + startingPointLength, y)
 
+
+        // debugPrint ("\n\nI SHOULD now be finding a new move ...")
+
+        //debugPrint ("\nCONTINUING FROM STARTING POINT: THIS IS THE HAND:")
+        //debugPrint ((string) hand)
+        // debugPrint ("\nTHIS IS THE STARTING POINT LETTERS:")
+        // debugPrint ((string) piecesInStartingPoint)
+        // debugPrint ("\nTHIS IS THE STARTING POINT DIRECTION:")
+        // debugPrint ((string) startingPointDirection)
+        // debugPrint ("\nTHESE ARE THE AVAILABLE PIECES WITH INFO:")
+        // debugPrint ((string) availablePiecesWithInfo)
+        // debugPrint ("\nTHESE ARE THE COORDS TO CARRY ON FROM :")
+        // debugPrint ((string) coordToCarryOnFrom)
+        // debugPrint ("\n\n\n\n\n")
+
         findMoveRecursive
-
-
-            // (piecesOnHandWithInfo: MultiSet.MultiSet<uint32 * (Set<char * int>)>)
-            // (builtWord: (uint32 * (char * int)) list)
-            // (dict: ScrabbleUtil.Dictionary.Dict)
-            // (coord: coord)
-            // (direction: Direction)
-            // (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
-            // pieces
-
-
             availablePiecesWithInfo
-            piecesInStartingPoint
-            wordDictSoFar
+            []
+            newWordDict
             coordToCarryOnFrom
             startingPointDirection
             lettersOnBoard
             pieces
+            true
 
     let findMove
         (hand)
@@ -463,49 +578,81 @@ module FindWord =
         (pieces: Map<uint32, Set<char * int>>)
         =
         if lettersOnBoard.IsEmpty then
+            // debugPrint ("FOUND FIRST MOVE")
 
             let ((isWord: bool), starterWord: (uint32 * (char * int)) list) =
-                findMoveRecursive availablePiecesWithInfo [] dict (0, 0) Right lettersOnBoard pieces
+                findMoveRecursive availablePiecesWithInfo [] dict (0, 0) Right lettersOnBoard pieces false
 
             let starterMove = convertWordToMoveString starterWord (0, 0) Right
             starterMove
         else
-            debugPrint ("BEFORE")
+
+            //There are already some pieces on the board. This means we need to continue something already on the board.
+            //We find possible starting points
 
             let startingPoints: ((Direction * coord) * (uint32 * (char * int)) list) list =
                 getStartingPoints lettersOnBoard
 
-            debugPrint ("After")
-            debugPrint ((string) startingPoints.Length)
+            //By choosing to play the starting points with the highest x and y coordinate we will be able to build a kind of staircase
+            //structure where collision with previous moves should not be an issue.
 
+            //We sort the startingPoints by their x and y values
             let startingPointsSortedByHighestCoord: ((Direction * coord) * (uint32 * (char * int)) list) list =
                 startingPoints |> List.sortByDescending (fun ((_, (x, y)), _) -> x, y)
 
-            debugPrint ("SORTED LIST")
+            //Now we construct a move.
 
             let move =
 
+                //This function recursive function keeps calling itself, going through the sorted list of starting points until
+                //it finds a valid move to play starting from the starting point it is currently considering
                 let rec findFirstValidMoveFromSortedStartingPoints
-                    element
+                    possibleStartingPoint
                     (acc: ((Direction * coord) * (uint32 * (char * int)) list) list)
                     =
-                    debugPrint (" GOING THROUGH SORTED LIST LOOKING FOR A WORD TO PLAY")
-                    let ((elementDirection, elementCoord), elementPiecesToPlay) = element
+                    debugPrint ("\n\nTHIS IS THE STARTING POINT WE ARE CONSIDERING CARRYING ON FROM: ")
+                    debugPrint ((string) possibleStartingPoint)
+                    debugPrint ("\n\n")
 
+                    //Split up the starting point we are considering into direction, coord, and pieces to play
+                    let ((possibleStartingPointDirection, possibleStartingPointCoord),
+                         possibleStartingPointPiecesToPlay: (uint32 * (char * int)) list) =
+                        possibleStartingPoint
+
+                    //split coord into x and y
+                    let (x, y) = possibleStartingPointCoord
+
+                    let startingPointLength = possibleStartingPointPiecesToPlay.Length
+
+                    //Since we want the move to continue from the end of the starting point, we find the coord to start from by adding the length of the list of pieces in the starting point to the coordinate.
+                    let nextCoord =
+                        match possibleStartingPointDirection with
+                        | Down -> (x, y + startingPointLength)
+                        | Right -> (x + startingPointLength, y)
+                        | _ -> failwith ("BAH")
+
+                    //When going looking for words we move through a dict tree structure. We need to continue down the dict from node we would be at
+                    // if we had played the whole starting point as a normal word.
+                    //We call continueFromStartingPoint. the function returns a boolean indicating if it found a word, and the word it found.
                     let (isWord, word: (uint32 * (char * int)) list) =
-                        continueFromStartingPoint hand element lettersOnBoard dict pieces
+                        continueFromStartingPoint hand possibleStartingPoint lettersOnBoard dict pieces
 
+                    //If we found a word from the starting point, we need to return it as a move.
                     match isWord with
                     | true ->
-                        debugPrint ("THIS HAPPEENED")
-                        ((elementDirection, elementCoord), elementPiecesToPlay)
+                        debugPrint ("\nTHE WORD!")
+                        debugPrint ((string) word)
+                        ((possibleStartingPointDirection, nextCoord), word)
 
                     | false ->
-                        debugPrint ("THAT HAPPEENED")
+                        debugPrint ("FAILED TO FIND A POSSIBLE WORD FOR THE STARTING POINT : ")
+                        debugPrint ((string) possibleStartingPointPiecesToPlay)
 
                         match acc with
                         | [] -> failwith "This should not happen....?"
-                        | nextElement :: newAcc -> findFirstValidMoveFromSortedStartingPoints nextElement newAcc
+                        | nextElement :: newAcc ->
+                            debugPrint ("CALLING MYSELF RECURSIVELYYYYY")
+                            findFirstValidMoveFromSortedStartingPoints nextElement newAcc
 
 
                 let moveWithDirections =
@@ -513,7 +660,11 @@ module FindWord =
                         startingPointsSortedByHighestCoord.Head
                         startingPointsSortedByHighestCoord.Tail
 
-                let ((moveDirection, moveCoord), word) = moveWithDirections
+
+
+                let ((moveDirection, (moveCoord)), word) = moveWithDirections
+                let (x, y) = moveCoord
+
                 convertWordToMoveString word moveCoord moveDirection
 
             move
