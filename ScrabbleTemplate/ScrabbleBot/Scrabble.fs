@@ -373,24 +373,11 @@ module FindWord =
 
                                     let (x, y) = coord
 
-
-                                    // //debugPrint ("\n\nTEST1\n\n")
-
                                     let newCoord =
                                         match direction with
-                                        | Down ->
-                                            //debugPrint ("\n\nWE ARE MOVING DOWN. THE NEW COORDINATE IS :")
-                                            //debugPrint ((string) (x, y + 1))
-                                            //debugPrint ("\n\n")
-                                            (x, y + 1)
-                                        | Right ->
-                                            //debugPrint ("\n\nWE ARE MOVING RIGHT. THE NEW COORDINATE IS :")
-                                            // debugPrint ((string) (x, y + 1))
-                                            // debugPrint ("\n\n")
-                                            (x + 1, y)
-                                        | _ ->
-                                            // debugPrint ("FAIL!")
-                                            failwith "Invalid direction"
+                                        | Down -> (x, y + 1)
+                                        | Right -> (x + 1, y)
+                                        | _ -> failwith "Invalid direction"
 
                                     //OBS: We need to check if there is anything next to this coordinate on either side
 
@@ -531,6 +518,9 @@ module FindWord =
 
                                         //OBS: And also in the same direction that we are already going in case we end a word right before another character is there...)
                                         // debugPrint ("\n PREPARING TO RECURSIVELY CALL MYSELF ...")
+
+
+
                                         let (childIsAWord, childWord) =
                                             findMoveRecursive
                                                 updatedAvailablePieces
@@ -543,9 +533,28 @@ module FindWord =
                                                 isContinuation
 
 
+                                        let nextCoord =
+                                            match direction with
+                                            | Down -> (x, y + 2)
+                                            | Right -> (x + 2, y)
+                                            | _ -> failwith "Invalid direction"
+
+                                        let checkIfTheNextCoordIsFreeBeforeRetutningFinishedWord =
+                                            match Map.tryFind nextCoord lettersOnBoard with
+                                            | Some _ ->
+                                                debugPrint ("THERE IS A TILE IN THE NEW COORD!")
+                                                false
+                                            | None -> true
+
+
                                         if childIsAWord then
                                             if List.length childWord > List.length longestWord then
-                                                (true, childWord)
+                                                if checkIfTheNextCoordIsFreeBeforeRetutningFinishedWord then
+                                                    (true, childWord)
+                                                else
+                                                    debugPrint ("THERE IS A TILE IN THE NEW COORD! SCRAPPING WORD :(")
+
+                                                    (false, [])
                                             else
                                                 (true, longestWord)
                                         else if isWord then
@@ -691,8 +700,6 @@ module FindWord =
         (pieces: Map<uint32, Set<char * int>>)
         =
 
-
-        Async.Sleep(500) |> Async.RunSynchronously
         debugPrint ("\nTHIS IS THE HAND: ")
         debugPrint ((string) hand)
 
@@ -817,24 +824,12 @@ module Scrabble =
 
         let rec aux (st: State.state) (thisPlayersTurn: bool) =
 
+            Async.Sleep(500) |> Async.RunSynchronously
 
             if (thisPlayersTurn) then
 
-                let allTheInfoAboutAvailablePieces = getFullInformationMultiSet st.hand pieces
-
-
-                let word =
-                    findMove st.hand allTheInfoAboutAvailablePieces st.dict st.lettersOnBoard pieces
-
-
-                //debugPrintWord word
-                debugPrint (word)
-
-
                 // ##### THIS PLAYER'S TURN #####
-
                 // First we check if this is the first move
-
 
                 debugPrint ("THIS IS THE HAND!")
                 Print.printHand pieces (State.hand st)
@@ -843,6 +838,17 @@ module Scrabble =
                     "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
 
                 debugPrint (sprintf "It's your turn, player %d. \n" (State.playerNumber st))
+
+
+
+                let allTheInfoAboutAvailablePieces = getFullInformationMultiSet st.hand pieces
+
+                let word =
+                    findMove st.hand allTheInfoAboutAvailablePieces st.dict st.lettersOnBoard pieces
+
+
+                //debugPrintWord word
+                debugPrint (word)
 
 
                 //let input = System.Console.ReadLine()
