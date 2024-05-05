@@ -71,6 +71,8 @@ module State =
 module FindWord =
     open ScrabbleUtil
     open MultiSet
+    open System.Threading
+    open System.Threading.Tasks
 
     type AllTheInfo = uint32 * (Set<char * int>)
 
@@ -79,6 +81,11 @@ module FindWord =
         | Right
         | Down
         | Left
+
+
+    let listOfPiecesToPlainString (word: (uint32 * (char * int)) list) =
+        word |> List.map (fun (_, (letter, _)) -> string letter) |> String.concat ""
+
 
 
     let charFromUint32 (charIndex: uint32) =
@@ -147,8 +154,6 @@ module FindWord =
             match direction with
             | Down
             | Right ->
-                debugPrint ("AAAAAAAAAA")
-
                 lookInDirectionRec
                     lettersOnBoard
                     newCoord
@@ -286,11 +291,6 @@ module FindWord =
 
         let move = auxMove "" (fst startCoord) (snd startCoord) word
 
-        debugPrint ("\n\n THIS IS THE WORD INPUT: ")
-        debugPrint ((string) word)
-        debugPrint ("\n AND THIS IS THE STRING CREATED FROM IT: ")
-        debugPrint (move)
-        debugPrint ("\n\n")
         move
 
 
@@ -305,7 +305,6 @@ module FindWord =
         (pieces: Map<uint32, Set<char * int>>)
         (isContinuation: bool)
         =
-        debugPrint ("RECURSIVE FOLD IS CALLED!")
         //if isContinuation then
         //debugPrint ("\n")
         //debugPrint ("NOW CONTINUING FROM A STARTING POINT")
@@ -414,71 +413,124 @@ module FindWord =
                                     let adjacentTileInFirstDirectionCoord =
                                         getAdjacentCoordinate (x, y) firstDirection
 
-                                    let prefix =
-                                        match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
-                                        | Some _ ->
-                                            lookInDirectionRec
-                                                lettersOnBoard
-                                                adjacentTileInFirstDirectionCoord
-                                                firstDirection
-                                                []
-                                        | None -> []
-
                                     let adjacentTileInSecondDirectionCoord =
                                         getAdjacentCoordinate (x, y) secondDirection
 
-                                    let suffix =
+
+
+                                    let adjacentFirstDirectionEmpty =
+                                        match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
+                                        | Some _ -> false
+                                        | None -> true
+
+                                    let adjacentSecondDirectionEmpty =
                                         match Map.tryFind adjacentTileInSecondDirectionCoord lettersOnBoard with
-                                        | Some _ ->
-                                            debugPrint ("FOUND ADJACENT PIECE")
+                                        | Some _ -> false
+                                        | None -> true
 
-                                            lookInDirectionRec
-                                                lettersOnBoard
-                                                adjacentTileInSecondDirectionCoord
-                                                secondDirection
-                                                []
-                                        | None -> []
+                                    let tileIsFree = adjacentFirstDirectionEmpty && adjacentSecondDirectionEmpty
 
-
-                                    if not prefix.IsEmpty || not suffix.IsEmpty then
-
-                                        let pieceWithAdjacentPrefixAndSuffix =
-                                            prefix @ [ (pieceId, (letter, pointValue)) ] @ suffix
-
-                                        debugPrint (
-                                            "\n\n THIS IS THE LETTER THAT HAD SOME ADJACENT STUFF WITH ALL THE ADJACENT STUff : "
-                                        )
-
-                                        debugPrint ((string) pieceWithAdjacentPrefixAndSuffix)
-
-                                        //Next we check if this whole thing is a word. If so, we are ok to carry on from here, otherwise we need to indicate that this move is invalid.
-
-                                        let getLetters (word: (uint32 * (char * int)) list) =
-                                            word
-                                            |> List.map (fun (_, (letter, _)) -> string letter)
-                                            |> String.concat ""
-
-                                        let pieceWithAdjacentPrefixAndSuffixAsString =
-                                            getLetters pieceWithAdjacentPrefixAndSuffix
-
-                                        let (isWord) =
-                                            dict |> Dictionary.lookup pieceWithAdjacentPrefixAndSuffixAsString
-
-                                        if not isWord then
-                                            debugPrint (
-                                                "\nI FOUND A PIECE WITH ADJACENT STUFF THAT DOESN'T MAKE A WORD: "
-                                            )
-
-                                            debugPrint (pieceWithAdjacentPrefixAndSuffixAsString)
-                                            debugPrint ("\n")
-                                            (false, [])
-                                        else
-                                            debugPrint ("THE ADJACENT STUFF MAKES A WORD")
+                                    if not tileIsFree then
+                                        (false, [])
                                     else
+
+                                        // let prefix =
+                                        //     match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
+                                        //     | Some _ ->
+                                        //         debugPrint ("\nFOUND ADJACENT PIECE IN PREFIX\n")
+
+                                        //         let foundPrefix =
+                                        //             lookInDirectionRec lettersOnBoard coord firstDirection [] //OBS: SHOULD THIS BE COORD OR THE NEXT COORD?
+
+                                        //         debugPrint ("\nI LOOKED FOR A PREFIX: THIS IS WHAT I FOUND: ")
+                                        //         debugPrint ((string) foundPrefix)
+
+                                        //         foundPrefix
+                                        //     | None -> []
+
+
+
+
+                                        // let suffix =
+                                        //     match Map.tryFind adjacentTileInSecondDirectionCoord lettersOnBoard with
+                                        //     | Some _ ->
+                                        //         debugPrint ("\nFOUND ADJACENT PIECE IN SUFFIX\n")
+
+                                        //         lookInDirectionRec lettersOnBoard coord secondDirection [] //OBS: SHOULD THIS BE COORD OR THE NEXT COORD?
+                                        //     | None ->
+                                        //         // debugPrint ("NOTHING ADJACENT IN COORD: ")
+                                        //         // debugPrint ((string) adjacentTileInSecondDirectionCoord)
+                                        //         // debugPrint ("\n")
+                                        //         []
+
+                                        //debugPrint ("\nTHIS IS THE PREFIX: ")
+                                        //debugPrint ((string) prefix)
+                                        //debugPrint ("THIS IS THE SUFFIX")
+                                        //debugPrint ((string) suffix)
+
+                                        // if not prefix.IsEmpty || not suffix.IsEmpty then
+
+                                        //     let pieceWithAdjacentPrefixAndSuffix =
+                                        //         prefix @ [ (pieceId, (letter, pointValue)) ] @ suffix
+
+                                        //     debugPrint (
+                                        //         "\n\n THIS IS THE LETTER THAT HAD SOME ADJACENT STUFF WITH ALL THE ADJACENT STUff : "
+                                        //     )
+
+                                        //     debugPrint ((string) pieceWithAdjacentPrefixAndSuffix)
+
+                                        //     //Next we check if this whole thing is a word. If so, we are ok to carry on from here, otherwise we need to indicate that this move is invalid.
+
+                                        //     let getLetters (word: (uint32 * (char * int)) list) =
+                                        //         word
+                                        //         |> List.map (fun (_, (letter, _)) -> string letter)
+                                        //         |> String.concat ""
+
+                                        //     let pieceWithAdjacentPrefixAndSuffixAsString =
+                                        //         getLetters pieceWithAdjacentPrefixAndSuffix
+
+                                        //     let (isWord) =
+                                        //         dict |> Dictionary.lookup pieceWithAdjacentPrefixAndSuffixAsString
+
+                                        //     if not isWord then
+                                        //         debugPrint (
+                                        //             "\nI FOUND A PIECE WITH ADJACENT STUFF THAT DOESN'T MAKE A WORD: "
+                                        //         )
+
+                                        //         debugPrint (pieceWithAdjacentPrefixAndSuffixAsString)
+                                        //         debugPrint ("\n")
+                                        //         (false, [])
+                                        //     else
+                                        //         debugPrint ("\nI FOUND A PIECE WITH ADJACENT STUFF THAT MAKES A WORD: ")
+                                        //         debugPrint (pieceWithAdjacentPrefixAndSuffixAsString)
+                                        //         debugPrint ("\n")
+
+                                        //         let (childIsAWord, childWord) =
+                                        //             findMoveRecursive
+                                        //                 updatedAvailablePieces
+                                        //                 updatedPlayedLetters
+                                        //                 newDict
+                                        //                 newCoord
+                                        //                 direction
+                                        //                 lettersOnBoard
+                                        //                 pieces
+                                        //                 isContinuation
+
+
+                                        //         if childIsAWord then
+                                        //             if List.length childWord > List.length longestWord then
+                                        //                 (true, childWord)
+                                        //             else
+                                        //                 (true, longestWord)
+                                        //         else if isWord then
+                                        //             (true, updatedPlayedLetters)
+                                        //         else
+                                        //             (false, [])
+                                        //else
+                                        //debugPrint ("Suffix and prefix should both be empty")
 
                                         //OBS: And also in the same direction that we are already going in case we end a word right before another character is there...)
                                         // debugPrint ("\n PREPARING TO RECURSIVELY CALL MYSELF ...")
-
                                         let (childIsAWord, childWord) =
                                             findMoveRecursive
                                                 updatedAvailablePieces
@@ -524,70 +576,111 @@ module FindWord =
         (pieces: Map<uint32, Set<char * int>>)
         =
 
-        debugPrint ("\n THIS IS THE STARTING POINT THAT WE START FROM: ")
-        debugPrint ((string) startingPoint)
-        debugPrint ("\n\n\n")
+        let piecesToPlayAfterStartingPoint =
+
+            let ((startingPointDirection, (x, y)), piecesInStartingPoint: (uint32 * (char * int)) list) =
+                startingPoint
+
+            //We need to get the correct dict for continuing from the starting point.
+            // That means we have to step down for each of the letters in the starting point and update the dict
+            // debugPrint ("NOW I AM IN THE CONTINUE FUNCTION: THE LIST OF STARTING POINTS HAS THIS MANY ELEMENTS: ")
+            // debugPrint ((string) piecesInStartingPoint.Length)
+
+            let (startingPointLength, newWordDict) =
+
+                piecesInStartingPoint
+                |> List.fold
+                    (fun (index, dict) piece ->
+                        // debugPrint ("FOLD")
+                        let (_, (letter, _)) = piece
+                        let nextStep = dict |> Dictionary.step letter
+
+                        if Option.isSome nextStep then
+                            (index + 1, nextStep.Value |> snd)
+                        else
+                            (index, dict))
+                    (0, dict)
 
 
+            // debugPrint ("Got this far")
+
+            let availablePiecesWithInfo = getFullInformationMultiSet hand pieces
+
+            let coordToCarryOnFrom =
+                match startingPointDirection with
+                | Up -> (x, y - startingPointLength)
+                | Down ->
+                    debugPrint ("\nTHIS IS THE STARTING POINT : ")
+                    debugPrint ((string) piecesInStartingPoint)
+                    debugPrint ("\nTHIS IS THE DIRECTION: ")
+                    debugPrint ((string) startingPointDirection)
+                    debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
+                    debugPrint ((string) startingPointLength)
+                    debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
+                    debugPrint ((string (x, y)))
+                    debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
+                    debugPrint ((string (x, y + startingPointLength)))
+                    debugPrint ("\n\n")
+
+                    (x, y + 1)
+                | Left -> (x - startingPointLength, y)
+                | Right ->
+                    debugPrint ("\nTHIS IS THE STARTING POINT : ")
+                    debugPrint ((string) piecesInStartingPoint)
+                    debugPrint ("\nTHIS IS THE DIRECTION: ")
+                    debugPrint ((string) startingPointDirection)
+                    debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
+                    debugPrint ((string) startingPointLength)
+                    debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
+                    debugPrint ((string (x, y)))
+                    debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
+                    debugPrint ((string (x, y + startingPointLength)))
+                    debugPrint ("\n\n")
+                    (x + 1, y)
+
+            // debugPrint ("\n\nI SHOULD now be finding a new move ...")
+
+            //debugPrint ("\nCONTINUING FROM STARTING POINT: THIS IS THE HAND:")
+            //debugPrint ((string) hand)
+            // debugPrint ("\nTHIS IS THE STARTING POINT LETTERS:")
+            // debugPrint ((string) piecesInStartingPoint)
+            // debugPrint ("\nTHIS IS THE STARTING POINT DIRECTION:")
+            // debugPrint ((string) startingPointDirection)
+            // debugPrint ("\nTHESE ARE THE AVAILABLE PIECES WITH INFO:")
+            // debugPrint ((string) availablePiecesWithInfo)
+            // debugPrint ("\nTHESE ARE THE COORDS TO CARRY ON FROM :")
+            // debugPrint ((string) coordToCarryOnFrom)
+            // debugPrint ("\n\n\n\n\n")
+
+            findMoveRecursive
+                availablePiecesWithInfo
+                []
+                newWordDict
+                coordToCarryOnFrom
+                startingPointDirection
+                lettersOnBoard
+                pieces
+                true
+
+        //DELETE v ONLY FOR DEBUG PRINTING
         let ((startingPointDirection, (x, y)), piecesInStartingPoint: (uint32 * (char * int)) list) =
             startingPoint
 
-        //We need to get the correct dict for continuing from the starting point.
-        // That means we have to step down for each of the letters in the starting point and update the dict
-        // debugPrint ("NOW I AM IN THE CONTINUE FUNCTION: THE LIST OF STARTING POINTS HAS THIS MANY ELEMENTS: ")
-        // debugPrint ((string) piecesInStartingPoint.Length)
+        let (isWord, pieces) = piecesToPlayAfterStartingPoint
+        let fullword = piecesInStartingPoint @ pieces
 
-        let (startingPointLength, newWordDict) =
+        if isWord then
+            debugPrint ("\n\nTHIS IS THE STARTING POINT: ")
+            let piecesInStartingPointString = listOfPiecesToPlainString piecesInStartingPoint
+            debugPrint (piecesInStartingPointString)
+            debugPrint ("\nTHIS IS THE WORD WE ARE PLAYING WITH THE STARTING POINT: ")
+            let fullWordString = listOfPiecesToPlainString fullword
+            debugPrint (fullWordString)
+            debugPrint ("\n\n")
 
-            piecesInStartingPoint
-            |> List.fold
-                (fun (index, dict) piece ->
-                    // debugPrint ("FOLD")
-                    let (_, (letter, _)) = piece
-                    let nextStep = dict |> Dictionary.step letter
-
-                    if Option.isSome nextStep then
-                        (index + 1, nextStep.Value |> snd)
-                    else
-                        (index, dict))
-                (0, dict)
-
-
-        // debugPrint ("Got this far")
-
-        let availablePiecesWithInfo = getFullInformationMultiSet hand pieces
-
-        let coordToCarryOnFrom =
-            match startingPointDirection with
-            | Up -> (x, y - startingPointLength)
-            | Down -> (x, y + startingPointLength)
-            | Left -> (x - startingPointLength, y)
-            | Right -> (x + startingPointLength, y)
-
-
-        // debugPrint ("\n\nI SHOULD now be finding a new move ...")
-
-        //debugPrint ("\nCONTINUING FROM STARTING POINT: THIS IS THE HAND:")
-        //debugPrint ((string) hand)
-        // debugPrint ("\nTHIS IS THE STARTING POINT LETTERS:")
-        // debugPrint ((string) piecesInStartingPoint)
-        // debugPrint ("\nTHIS IS THE STARTING POINT DIRECTION:")
-        // debugPrint ((string) startingPointDirection)
-        // debugPrint ("\nTHESE ARE THE AVAILABLE PIECES WITH INFO:")
-        // debugPrint ((string) availablePiecesWithInfo)
-        // debugPrint ("\nTHESE ARE THE COORDS TO CARRY ON FROM :")
-        // debugPrint ((string) coordToCarryOnFrom)
-        // debugPrint ("\n\n\n\n\n")
-
-        findMoveRecursive
-            availablePiecesWithInfo
-            []
-            newWordDict
-            coordToCarryOnFrom
-            startingPointDirection
-            lettersOnBoard
-            pieces
-            true
+            piecesToPlayAfterStartingPoint
+        else
+            piecesToPlayAfterStartingPoint
 
     let findMove
         (hand)
@@ -597,6 +690,14 @@ module FindWord =
         (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
         (pieces: Map<uint32, Set<char * int>>)
         =
+
+
+        Async.Sleep(500) |> Async.RunSynchronously
+        debugPrint ("\nTHIS IS THE HAND: ")
+        debugPrint ((string) hand)
+
+
+
         if lettersOnBoard.IsEmpty then
             // debugPrint ("FOUND FIRST MOVE")
 
@@ -630,9 +731,6 @@ module FindWord =
                     possibleStartingPoint
                     (acc: ((Direction * coord) * (uint32 * (char * int)) list) list)
                     =
-                    debugPrint ("\n\nTHIS IS THE STARTING POINT WE ARE CONSIDERING CARRYING ON FROM: ")
-                    debugPrint ((string) possibleStartingPoint)
-                    debugPrint ("\n\n")
 
                     //Split up the starting point we are considering into direction, coord, and pieces to play
                     let ((possibleStartingPointDirection, possibleStartingPointCoord),
@@ -647,8 +745,8 @@ module FindWord =
                     //Since we want the move to continue from the end of the starting point, we find the coord to start from by adding the length of the list of pieces in the starting point to the coordinate.
                     let nextCoord =
                         match possibleStartingPointDirection with
-                        | Down -> (x, y + startingPointLength)
-                        | Right -> (x + startingPointLength, y)
+                        | Down -> (x, y + 1)
+                        | Right -> (x + 1, y)
                         | _ -> failwith ("BAH")
 
                     //When going looking for words we move through a dict tree structure. We need to continue down the dict from node we would be at
@@ -660,7 +758,7 @@ module FindWord =
                     //If we found a word from the starting point, we need to return it as a move.
                     match isWord with
                     | true ->
-                        debugPrint ("\nTHE WORD!")
+                        debugPrint ("\ FOUND A WORD!: ")
                         debugPrint ((string) word)
                         ((possibleStartingPointDirection, nextCoord), word)
 
@@ -670,9 +768,7 @@ module FindWord =
 
                         match acc with
                         | [] -> failwith "This should not happen....?"
-                        | nextElement :: newAcc ->
-                            debugPrint ("CALLING MYSELF RECURSIVELYYYYY")
-                            findFirstValidMoveFromSortedStartingPoints nextElement newAcc
+                        | nextElement :: newAcc -> findFirstValidMoveFromSortedStartingPoints nextElement newAcc
 
 
                 let moveWithDirections =
@@ -697,12 +793,6 @@ module FindWord =
 
 
 
-    // For debugging: Print found word
-    let debugPrintWord (longestWord: (uint32 * (char * int)) list) =
-        let printLetter (_, (letter, _)) = // Ignoring pieceId and pointValue
-            printf "%c" letter
-
-        longestWord |> List.iter printLetter
 
     type Move = (coord * (uint32 * (char * int))) list
 
@@ -727,26 +817,26 @@ module Scrabble =
 
         let rec aux (st: State.state) (thisPlayersTurn: bool) =
 
-            let allTheInfoAboutAvailablePieces = getFullInformationMultiSet st.hand pieces
-
-
-            let word =
-                findMove st.hand allTheInfoAboutAvailablePieces st.dict st.lettersOnBoard pieces
-
-
-            //debugPrintWord word
-            debugPrint (word)
-
-
 
             if (thisPlayersTurn) then
+
+                let allTheInfoAboutAvailablePieces = getFullInformationMultiSet st.hand pieces
+
+
+                let word =
+                    findMove st.hand allTheInfoAboutAvailablePieces st.dict st.lettersOnBoard pieces
+
+
+                //debugPrintWord word
+                debugPrint (word)
+
 
                 // ##### THIS PLAYER'S TURN #####
 
                 // First we check if this is the first move
 
 
-
+                debugPrint ("THIS IS THE HAND!")
                 Print.printHand pieces (State.hand st)
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 forcePrint
@@ -755,13 +845,13 @@ module Scrabble =
                 debugPrint (sprintf "It's your turn, player %d. \n" (State.playerNumber st))
 
 
-            //let input = System.Console.ReadLine()
-            let move: (coord * (uint32 * (char * int))) list = RegEx.parseMove word
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-            send cstream (SMPlay move)
+                //let input = System.Console.ReadLine()
+                let move: (coord * (uint32 * (char * int))) list = RegEx.parseMove word
+                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                send cstream (SMPlay move)
 
             let msg = recv cstream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+            //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
 
             match msg with
