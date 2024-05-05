@@ -393,93 +393,113 @@ module FindWord =
                                             // debugPrint ("FAIL!")
                                             failwith "Invalid direction"
 
-                                    // //OBS: We need to check if there is anything next to this coordinate on either side
+                                    //OBS: We need to check if there is anything next to this coordinate on either side
 
-                                    // let directionsToLookForAdjacentPieces =
-                                    //     match direction with
-                                    //     | Down -> (Left, Right)
-                                    //     | Right -> (Up, Down)
-                                    //     | _ -> failwith "Invalid direction" //Shouldn't happen ...
+                                    let directionsToLookForAdjacentPieces =
+                                        match direction with
+                                        | Down -> (Left, Right)
+                                        | Right -> (Up, Down)
+                                        | _ -> failwith "Invalid direction" //Shouldn't happen ...
 
-                                    // let getAdjacentCoordinate (x, y) direction =
-                                    //     match direction with
-                                    //     | Up -> (x, y - 1)
-                                    //     | Down -> (x, y + 1)
-                                    //     | Left -> (x - 1, y)
-                                    //     | Right -> (x + 1, y)
-
-
-                                    // let (firstDirection, secondDirection) = directionsToLookForAdjacentPieces
-
-                                    // let adjacentTileInFirstDirectionCoord =
-                                    //     getAdjacentCoordinate (x, y) firstDirection
-
-                                    // let prefix =
-                                    //     match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
-                                    //     | Some _ ->
-                                    //         lookInDirectionRec
-                                    //             lettersOnBoard
-                                    //             adjacentTileInFirstDirectionCoord
-                                    //             firstDirection
-                                    //             []
-                                    //     | None -> []
+                                    let getAdjacentCoordinate (x, y) direction =
+                                        match direction with
+                                        | Up -> (x, y - 1)
+                                        | Down -> (x, y + 1)
+                                        | Left -> (x - 1, y)
+                                        | Right -> (x + 1, y)
 
 
-                                    // let adjacentTileInSecondDirectionCoord =
-                                    //     getAdjacentCoordinate (x, y) secondDirection
+                                    let (firstDirection, secondDirection) = directionsToLookForAdjacentPieces
 
-                                    // let suffix =
-                                    //     match Map.tryFind adjacentTileInSecondDirectionCoord lettersOnBoard with
-                                    //     | Some _ ->
-                                    //         lookInDirectionRec
-                                    //             lettersOnBoard
-                                    //             adjacentTileInSecondDirectionCoord
-                                    //             secondDirection
-                                    //             []
-                                    //     | None -> failwith "test" //OBS FIX
+                                    let adjacentTileInFirstDirectionCoord =
+                                        getAdjacentCoordinate (x, y) firstDirection
 
-                                    // let pieceWithAdjacentPrefixAndSuffix =
-                                    //     prefix @ [ (pieceId, (letter, pointValue)) ] @ suffix
+                                    let prefix =
+                                        match Map.tryFind adjacentTileInFirstDirectionCoord lettersOnBoard with
+                                        | Some _ ->
+                                            lookInDirectionRec
+                                                lettersOnBoard
+                                                adjacentTileInFirstDirectionCoord
+                                                firstDirection
+                                                []
+                                        | None -> []
 
-                                    // debugPrint (
-                                    //     "\n\n THIS IS THE LETTER THAT HAD SOME ADJACENT STUFF WITH ALL THE ADJACENT STUff : "
-                                    // )
+                                    let adjacentTileInSecondDirectionCoord =
+                                        getAdjacentCoordinate (x, y) secondDirection
 
-                                    // debugPrint ((string) pieceWithAdjacentPrefixAndSuffix)
+                                    let suffix =
+                                        match Map.tryFind adjacentTileInSecondDirectionCoord lettersOnBoard with
+                                        | Some _ ->
+                                            debugPrint ("FOUND ADJACENT PIECE")
 
-                                    // //Next we check if this whole thing is a word. If so, we are ok to carry on from here, otherwise we need to indicate that this move is invalid.
-
-
-
-                                    //dict |> Dictionary.lookup
-
-
-                                    //OBS: And also in the same direction that we are already going in case we end a word right before another character is there...)
-
-
-                                    // debugPrint ("\n PREPARING TO RECURSIVELY CALL MYSELF ...")
-
-                                    let (childIsAWord, childWord) =
-                                        findMoveRecursive
-                                            updatedAvailablePieces
-                                            updatedPlayedLetters
-                                            newDict
-                                            newCoord
-                                            direction
-                                            lettersOnBoard
-                                            pieces
-                                            isContinuation
+                                            lookInDirectionRec
+                                                lettersOnBoard
+                                                adjacentTileInSecondDirectionCoord
+                                                secondDirection
+                                                []
+                                        | None -> []
 
 
-                                    if childIsAWord then
-                                        if List.length childWord > List.length longestWord then
-                                            (true, childWord)
+                                    if not prefix.IsEmpty || not suffix.IsEmpty then
+
+                                        let pieceWithAdjacentPrefixAndSuffix =
+                                            prefix @ [ (pieceId, (letter, pointValue)) ] @ suffix
+
+                                        debugPrint (
+                                            "\n\n THIS IS THE LETTER THAT HAD SOME ADJACENT STUFF WITH ALL THE ADJACENT STUff : "
+                                        )
+
+                                        debugPrint ((string) pieceWithAdjacentPrefixAndSuffix)
+
+                                        //Next we check if this whole thing is a word. If so, we are ok to carry on from here, otherwise we need to indicate that this move is invalid.
+
+                                        let getLetters (word: (uint32 * (char * int)) list) =
+                                            word
+                                            |> List.map (fun (_, (letter, _)) -> string letter)
+                                            |> String.concat ""
+
+                                        let pieceWithAdjacentPrefixAndSuffixAsString =
+                                            getLetters pieceWithAdjacentPrefixAndSuffix
+
+                                        let (isWord) =
+                                            dict |> Dictionary.lookup pieceWithAdjacentPrefixAndSuffixAsString
+
+                                        if not isWord then
+                                            debugPrint (
+                                                "\nI FOUND A PIECE WITH ADJACENT STUFF THAT DOESN'T MAKE A WORD: "
+                                            )
+
+                                            debugPrint (pieceWithAdjacentPrefixAndSuffixAsString)
+                                            debugPrint ("\n")
+                                            (false, [])
                                         else
-                                            (true, longestWord)
-                                    else if isWord then
-                                        (true, updatedPlayedLetters)
+                                            debugPrint ("THE ADJACENT STUFF MAKES A WORD")
                                     else
-                                        (false, [])
+
+                                        //OBS: And also in the same direction that we are already going in case we end a word right before another character is there...)
+                                        // debugPrint ("\n PREPARING TO RECURSIVELY CALL MYSELF ...")
+
+                                        let (childIsAWord, childWord) =
+                                            findMoveRecursive
+                                                updatedAvailablePieces
+                                                updatedPlayedLetters
+                                                newDict
+                                                newCoord
+                                                direction
+                                                lettersOnBoard
+                                                pieces
+                                                isContinuation
+
+
+                                        if childIsAWord then
+                                            if List.length childWord > List.length longestWord then
+                                                (true, childWord)
+                                            else
+                                                (true, longestWord)
+                                        else if isWord then
+                                            (true, updatedPlayedLetters)
+                                        else
+                                            (false, [])
 
                                 | None -> (false, longestWord)) //OBS: SHOULD THIS BE TRUE?
                             (false, [])
