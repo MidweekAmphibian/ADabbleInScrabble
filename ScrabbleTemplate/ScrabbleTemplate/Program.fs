@@ -39,7 +39,7 @@ let main argv =
     let words = readLines "./Dictionaries/English.txt"
 
     let handSize = 7u
-    let timeout = Some 5000u
+    let timeout = None
     let tiles = ScrabbleUtil.English.tiles 1u
     let seed = None
     let port = 13001
@@ -57,7 +57,7 @@ let main argv =
         [ ("ADabbleInScrabbleBot1", dictionary, ScrabbleBot.Scrabble.startGame) ]
 
     //let players =
-    //    spawnMultiples "SrabbleDabbler" dictionary ScrabbleBot.Scrabble.startGame 2
+    //    spawnMultiples "SrabbleDabbler" dictionary ScrabbleBot.Scrabble.startGame 4
 
 
     do ScrabbleServer.Comm.startGame board dictionary handSize timeout tiles seed port players

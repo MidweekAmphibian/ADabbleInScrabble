@@ -1,0 +1,19 @@
+NON-MANDATORY TASKS DONE:
+
+- Multi-player: no 
+    (Although we do support multiple bots playing against each other, we end up with situations where the game doesn’t conclude in the intended way. )
+
+- Dictionary: no
+
+- playing on all boards: no
+
+- parallelism: no
+
+- Respect the timeout flag: no
+
+
+We continue to play moves until we can't find more valid moves.
+Since we use the standard provided Dict which only allows for words of odd lengths, there are sometimes no possible moves even when it seems that there should be. 
+On some rare occasions there will be no valid moves quite early in the game in which case we don't manage to play very long. 
+However, since we prioritize which words to play among the found possibilities, and we swap pieces on our hand when no moves can be found, we are mostly able to play until
+we run out of pieces.
