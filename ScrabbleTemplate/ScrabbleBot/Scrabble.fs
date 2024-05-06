@@ -6,6 +6,7 @@ open ScrabbleUtil.ServerCommunication
 open System.IO
 
 open ScrabbleUtil.DebugPrint
+open Util
 
 // The RegEx module is only used to parse human input. It is not used for the final product.
 
@@ -51,15 +52,25 @@ module State =
           playerNumber: uint32
           hand: MultiSet.MultiSet<uint32>
           numOfPlayers: uint32
-          playerTurn: uint32 }
+          playerTurn: uint32
+          timeout: uint32 option }
 
-    let mkState (boardMap: Map<coord, (uint32 * (char * int))>) d pn h ps pt =
+    let mkState
+        (boardMap: Map<coord, (uint32 * (char * int))>)
+        newDict
+        newPlayerNumber
+        newHand
+        newNumOfPlayers
+        newPlayerTurn
+        timeout
+        =
         { lettersOnBoard = boardMap
-          dict = d
-          playerNumber = pn
-          hand = h
-          numOfPlayers = ps
-          playerTurn = pt }
+          dict = newDict
+          playerNumber = newPlayerNumber
+          hand = newHand
+          numOfPlayers = newNumOfPlayers
+          playerTurn = newPlayerTurn
+          timeout = timeout }
 
     let lettersOnBoard st = st.lettersOnBoard
     let dict st = st.dict
@@ -68,52 +79,44 @@ module State =
     let hand st = st.hand
     let playerTurn st = st.playerTurn
 
+
+    let updateHand move st newPieces =
+
+        // UPDATE THE HAND:
+        // Extract piece IDs from each move
+        let playedPieceIds = move |> List.map (fun (_, (uid: uint32, (_, _))) -> uid)
+
+        // make new list with played pieces from pieces on hand
+        let handWithRemovedPieces =
+            playedPieceIds
+            |> List.fold (fun hand (pieceId: uint32) -> MultiSet.removeSingle pieceId hand) (hand st)
+        // add the new pieces to this list
+        let handWithAddedAndRemovedPieces =
+            newPieces
+            |> List.fold
+                (fun handWithRemovedPieces (pieceID: uint32, count: uint32) ->
+                    MultiSet.add pieceID count handWithRemovedPieces)
+                (handWithRemovedPieces)
+        // At the end, set the State hand to this list.
+        handWithAddedAndRemovedPieces
+
+    let updatePiecesOnBoard move st =
+        move
+        |> List.fold (fun acc (coord, ((char, points))) -> Map.add coord (char, points) acc) st.lettersOnBoard
+
+
 module FindWord =
     open ScrabbleUtil
     open MultiSet
     open System.Threading
     open System.Threading.Tasks
-
-    type AllTheInfo = uint32 * (Set<char * int>)
+    open Util
 
     type Direction =
         | Up
         | Right
         | Down
         | Left
-
-
-    let listOfPiecesToPlainString (word: (uint32 * (char * int)) list) =
-        word |> List.map (fun (_, (letter, _)) -> string letter) |> String.concat ""
-
-
-
-    let charFromUint32 (charIndex: uint32) =
-        let list = [ 'a' .. 'z' ]
-        let listWithWildcard = '_' :: list
-        listWithWildcard.[int (charIndex)]
-
-    let uint32FromChar (char: char) =
-        let list = [ 'a' .. 'z' ]
-        let listWithWildcard = '_' :: list
-
-        // Check if the character exists
-        let index = List.tryFindIndex (fun x -> x = char) listWithWildcard
-        index
-
-    //This funtion adds all the letters of the alphabet to a MultiSet of characters. it is used to update the available letters when we have a wildcard piece on hand.
-    // This function is a waste of time, just set the available letters to the set of all letters. (MultiSet<char>)
-    let addWildcardLetters () =
-        let letters = [ 'A' .. 'Z' ]
-
-        letters
-        |> List.fold (fun (acc: MultiSet.MultiSet<char>) letter -> MultiSet.addSingle letter acc) MultiSet.empty
-
-
-
-
-
-
 
     let rec lookInDirectionRec
         (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
@@ -126,12 +129,6 @@ module FindWord =
 
         // The idea is to keep moving in some direction from some start coordinate and keep going until there are no more pieces,
         // then return the pieces encountered, which will be the word.
-
-        //debugPrint ("NOW LOOKING IN DIRECTION : ")
-        //debugPrint ((string) direction)
-        //debugPrint (" AT COORDINATE ")
-        //debugPrint ((string) coord)
-
 
         let (x, y) = coord
 
@@ -147,9 +144,8 @@ module FindWord =
         match Map.tryFind newCoord lettersOnBoard with
         | None -> //If nothing is there, we are done "exploring" the word on the board and we return the word found (the accumulator).
             foundWordAcc
-        | Some(pieceId, (letter, pointValue)) -> //, if we hit a letter, we recursively move to the next letter witht he new letter added to the accumulator foundWordAcc
-
-
+        | Some(pieceId, (letter, pointValue)) ->
+            //, if we hit a letter, we recursively move to the next letter witht he new letter added to the accumulator
             // OBS IS THIS RIGHT? We want the word to be in the right order no matter (top to bottom or left to right no matter what direction we are looking)
             match direction with
             | Down
@@ -161,13 +157,6 @@ module FindWord =
                     (foundWordAcc @ [ (pieceId, (letter, pointValue)) ])
             | Up
             | Left ->
-                //debugPrint (" FOUND ANOTHER CHARACTER WHILE LOOKING UP OR TO THE LEFT\n ")
-                //debugPrint (" NOW APPENDING ACCUMULATOR: THE NEW LENGTH IF THE ACCUMULATOR IS: ")
-                let newAcc = ([ (pieceId, (letter, pointValue)) ] @ foundWordAcc)
-                //debugPrint ((string) newAcc.Length)
-                //debugPrint ("\n")
-
-
                 lookInDirectionRec
                     lettersOnBoard
                     newCoord
@@ -234,7 +223,7 @@ module FindWord =
 
                             //debugPrint ("\nTHERE ARE THIS MANY ELEMENTS IN THE FOUND STARTING POINT:  ")
                             //debugPrint ((string) startingPointInDir.Length)
-                            debugPrint ((string) ((directionToLook, coord), startingPointInDir))
+                            //debugPrint ((string) ((directionToLook, coord), startingPointInDir))
                             foundStartingPointsAcc @ [ ((directionToLook, coord), startingPointInDir) ]
                         | Some _ ->
                             // If we do enounter an adjacent letter in the direction we are looking in, then we can't play a word in that direction from this point.
@@ -619,32 +608,32 @@ module FindWord =
                 match startingPointDirection with
                 | Up -> (x, y - startingPointLength)
                 | Down ->
-                    debugPrint ("\nTHIS IS THE STARTING POINT : ")
-                    debugPrint ((string) piecesInStartingPoint)
-                    debugPrint ("\nTHIS IS THE DIRECTION: ")
-                    debugPrint ((string) startingPointDirection)
-                    debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
-                    debugPrint ((string) startingPointLength)
-                    debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
-                    debugPrint ((string (x, y)))
-                    debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
-                    debugPrint ((string (x, y + startingPointLength)))
-                    debugPrint ("\n\n")
+                    // debugPrint ("\nTHIS IS THE STARTING POINT : ")
+                    // debugPrint ((string) piecesInStartingPoint)
+                    // debugPrint ("\nTHIS IS THE DIRECTION: ")
+                    // debugPrint ((string) startingPointDirection)
+                    // debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
+                    // debugPrint ((string) startingPointLength)
+                    // debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
+                    // debugPrint ((string (x, y)))
+                    // debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
+                    // debugPrint ((string (x, y + startingPointLength)))
+                    // debugPrint ("\n\n")
 
                     (x, y + 1)
                 | Left -> (x - startingPointLength, y)
                 | Right ->
-                    debugPrint ("\nTHIS IS THE STARTING POINT : ")
-                    debugPrint ((string) piecesInStartingPoint)
-                    debugPrint ("\nTHIS IS THE DIRECTION: ")
-                    debugPrint ((string) startingPointDirection)
-                    debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
-                    debugPrint ((string) startingPointLength)
-                    debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
-                    debugPrint ((string (x, y)))
-                    debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
-                    debugPrint ((string (x, y + startingPointLength)))
-                    debugPrint ("\n\n")
+                    // debugPrint ("\nTHIS IS THE STARTING POINT : ")
+                    // debugPrint ((string) piecesInStartingPoint)
+                    // debugPrint ("\nTHIS IS THE DIRECTION: ")
+                    // debugPrint ((string) startingPointDirection)
+                    // debugPrint ("\nTHIS IS THE LENGTH OF THE STARTING POINT: ")
+                    // debugPrint ((string) startingPointLength)
+                    // debugPrint ("\nTHIS IS THE X AND Y OF THE STARTING POINT: ")
+                    // debugPrint ((string (x, y)))
+                    // debugPrint ("\nTHIS IS THE MODIFIED X AND Y OF THE STARTING POINT: ")
+                    // debugPrint ((string (x, y + startingPointLength)))
+                    // debugPrint ("\n\n")
                     (x + 1, y)
 
             // debugPrint ("\n\nI SHOULD now be finding a new move ...")
@@ -680,10 +669,13 @@ module FindWord =
 
         if isWord then
             debugPrint ("\n\nTHIS IS THE STARTING POINT: ")
-            let piecesInStartingPointString = listOfPiecesToPlainString piecesInStartingPoint
+
+            let piecesInStartingPointString =
+                Util.listOfPiecesToPlainString piecesInStartingPoint
+
             debugPrint (piecesInStartingPointString)
             debugPrint ("\nTHIS IS THE WORD WE ARE PLAYING WITH THE STARTING POINT: ")
-            let fullWordString = listOfPiecesToPlainString fullword
+            let fullWordString = Util.listOfPiecesToPlainString fullword
             debugPrint (fullWordString)
             debugPrint ("\n\n")
 
@@ -692,17 +684,23 @@ module FindWord =
             piecesToPlayAfterStartingPoint
 
     let findMove
-        (hand)
-        (availablePiecesWithInfo: MultiSet.MultiSet<AllTheInfo>)
+        (hand: MultiSet<uint32>)
+        (availablePiecesWithInfo: MultiSet<uint32 * Set<char * int>>)
         //(builtWord: (uint32 * (char * int)) list)
         (dict: ScrabbleUtil.Dictionary.Dict)
         (lettersOnBoard: Map<coord, (uint32 * (char * int))>)
         (pieces: Map<uint32, Set<char * int>>)
         =
 
-        debugPrint ("\nTHIS IS THE HAND: ")
-        debugPrint ((string) hand)
+        //Convert the list to a string representation for printing
+        let listToString (lst) =
+            lst |> List.map string |> String.concat "; "
 
+        debugPrint ("\nTHIS IS THE HAND: ")
+        debugPrint (listToString (hand |> MultiSet.toList))
+        debugPrint (" Number of pieces: ")
+        debugPrint ((string) (hand |> MultiSet.toList).Length)
+        debugPrint ("\n")
 
 
         if lettersOnBoard.IsEmpty then
@@ -721,22 +719,15 @@ module FindWord =
             let startingPoints: ((Direction * coord) * (uint32 * (char * int)) list) list =
                 getStartingPoints lettersOnBoard
 
-            //By choosing to play the starting points with the highest x and y coordinate we will be able to build a kind of staircase
-            //structure where collision with previous moves should not be an issue.
-
-            //We sort the startingPoints by their x and y values
-            let startingPointsSortedByHighestCoord: ((Direction * coord) * (uint32 * (char * int)) list) list =
-                startingPoints |> List.sortByDescending (fun ((_, (x, y)), _) -> x, y)
-
-            //Now we construct a move.
 
             let move =
 
-                //This function recursive function keeps calling itself, going through the sorted list of starting points until
-                //it finds a valid move to play starting from the starting point it is currently considering
-                let rec findFirstValidMoveFromSortedStartingPoints
+                let rec findBesttValidMoveForEachStartingPoint
+
                     possibleStartingPoint
-                    (acc: ((Direction * coord) * (uint32 * (char * int)) list) list)
+                    (startingpointsToLookThrough: ((Direction * coord) * (uint32 * (char * int)) list) list)
+                    (accBestMoves: ((Direction * coord) * (uint32 * (char * int)) list) list)
+
                     =
 
                     //Split up the starting point we are considering into direction, coord, and pieces to play
@@ -750,6 +741,7 @@ module FindWord =
                     let startingPointLength = possibleStartingPointPiecesToPlay.Length
 
                     //Since we want the move to continue from the end of the starting point, we find the coord to start from by adding the length of the list of pieces in the starting point to the coordinate.
+                    // OBS WHY DOES +1 WORK INSTEAD .... ? TRY TO UNDERSTAND
                     let nextCoord =
                         match possibleStartingPointDirection with
                         | Down -> (x, y + 1)
@@ -765,55 +757,94 @@ module FindWord =
                     //If we found a word from the starting point, we need to return it as a move.
                     match isWord with
                     | true ->
-                        debugPrint ("\ FOUND A WORD!: ")
-                        debugPrint ((string) word)
-                        ((possibleStartingPointDirection, nextCoord), word)
+                        //debugPrint ("\ FOUND A WORD!: ")
+                        //debugPrint ((string) word)
+
+                        let updatedAccBestMoves =
+                            accBestMoves @ [ ((possibleStartingPointDirection, nextCoord), word) ]
+
+                        match startingpointsToLookThrough with
+                        | [] -> accBestMoves
+                        | nextElement :: remainingStartingpointsToLookThrough ->
+                            findBesttValidMoveForEachStartingPoint
+                                nextElement
+                                remainingStartingpointsToLookThrough
+                                updatedAccBestMoves
+
 
                     | false ->
                         debugPrint ("FAILED TO FIND A POSSIBLE WORD FOR THE STARTING POINT : ")
                         debugPrint ((string) possibleStartingPointPiecesToPlay)
 
-                        match acc with
-                        | [] -> failwith "This should not happen....?"
-                        | nextElement :: newAcc -> findFirstValidMoveFromSortedStartingPoints nextElement newAcc
+                        match startingpointsToLookThrough with
+                        | [] -> accBestMoves
+                        | nextElement :: remainingStartingpointsToLookThrough ->
+                            findBesttValidMoveForEachStartingPoint
+                                nextElement
+                                remainingStartingpointsToLookThrough
+                                accBestMoves
 
 
-                let moveWithDirections =
-                    findFirstValidMoveFromSortedStartingPoints
-                        startingPointsSortedByHighestCoord.Head
-                        startingPointsSortedByHighestCoord.Tail
+                let bestMoves: ((Direction * coord) * (uint32 * (char * int)) list) list =
 
+                    findBesttValidMoveForEachStartingPoint startingPoints.Head startingPoints.Tail []
 
+                if bestMoves.Length = 0 then
+                    ""
+                else
 
-                let ((moveDirection, (moveCoord)), word) = moveWithDirections
-                let (x, y) = moveCoord
+                    let bestMovesWithPoints =
 
-                convertWordToMoveString word moveCoord moveDirection
+                        debugPrint ("THESE ARE ALL THE BEST MOVES WE CAN MAKE")
+
+                        bestMoves
+                        |> List.fold
+                            (fun () move ->
+                                let (_, elements) = move
+                                let wordString = listOfPiecesToPlainString elements
+                                debugPrint (wordString)
+                                debugPrint ("; "))
+                            ()
+
+                        let getMovesWithAccumulatedPoints
+                            (moveList: ((Direction * coord) * (uint32 * (char * int)) list) list)
+                            =
+
+                            moveList
+                            |> List.fold
+                                (fun
+                                    (movesWithPoints: (int * ((Direction * coord) * (uint32 * (char * int)) list)) list)
+                                    (move: ((Direction * coord) * (uint32 * (char * int)) list)) ->
+
+                                    let (_, moveElements) = move
+
+                                    let movePoints =
+                                        moveElements
+                                        |> List.fold
+                                            (fun (accPoints: int) piece ->
+                                                let (_, (_, pointValue)) = piece
+                                                accPoints + pointValue)
+                                            (0)
+
+                                    movesWithPoints @ [ (movePoints, move) ])
+                                ([])
+
+                        getMovesWithAccumulatedPoints bestMoves
+
+                    let sortedBestMoves =
+                        bestMovesWithPoints |> List.sortByDescending (fun (int, _) -> int)
+
+                    debugPrint ("\n THESE ARE THE SORTED BEST MOVES: ")
+                    debugPrint ((string) sortedBestMoves)
+
+                    let (_, bestMove) = sortedBestMoves.Head
+
+                    let ((moveDirection, (moveCoord)), word) = bestMove
+                    let (x, y) = moveCoord
+
+                    convertWordToMoveString word moveCoord moveDirection
 
             move
-
-    //This is where we need to somehow go through what is on the board, look for words/letters there and then look for ways to continue those.
-
-
-
-
-
-
-
-
-    type Move = (coord * (uint32 * (char * int))) list
-
-// Define the function to generate a move
-//let generateMove (hand: MultiSet.MultiSet<uint32>) (dict: ScrabbleUtil.Dictionary.Dict) (board: Map<coord, (uint32 * (char * int))>) =
-//    let playedLetters = MultiSet<uint32>.empty
-//    let move = []
-//    let word = stepRecursively hand playedLetters dict
-//    match word with
-//    | None -> failwith "Couldnt find word"
-//    | Some (foundWord: MultiSet.MultiSet<uint32>) ->
-//        word
-//        |> MultiSet.fold (fun coordAcc charId _ ->
-//            coordAcc (charId()) ((0,0)))
 
 
 module Scrabble =
@@ -824,119 +855,104 @@ module Scrabble =
 
         let rec aux (st: State.state) (thisPlayersTurn: bool) =
 
-            Async.Sleep(500) |> Async.RunSynchronously
+            Async.Sleep(2000) |> Async.RunSynchronously
+
+            debugPrint ("\n############################ v PLAYER TURN: v ############################\n")
+            debugPrint ((string) st.playerTurn)
+            debugPrint ("\n############################ ^ PLAYER TURN: ^ ############################\n")
 
             if (thisPlayersTurn) then
 
-                // ##### THIS PLAYER'S TURN #####
-                // First we check if this is the first move
-
-                debugPrint ("THIS IS THE HAND!")
-                Print.printHand pieces (State.hand st)
+                //Print.printHand pieces (State.hand st)
                 // remove the force print when you move on from manual input (or when you have learnt the format)
-                forcePrint
-                    "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+                //forcePrint
+                //    "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+                debugPrint (
+                    sprintf " #############  It's your turn, player %d. #################\n\n" (State.playerNumber st)
+                )
 
-                debugPrint (sprintf "It's your turn, player %d. \n" (State.playerNumber st))
-
-
-
+                // In order to construct a move, we'll first make a new MultiSet of the pieces we have on hand which has more info than just the pieceId.
+                // This is to help make construct words easier. It has a lot of perks, but also means some stuff is kind of cumbersome...
                 let allTheInfoAboutAvailablePieces = getFullInformationMultiSet st.hand pieces
 
+                //Next we find a word to play. We get the input as string and then parse it with regex as we would manual input. This is just because this approach seemed
+                //easier when we started.
                 let word =
                     findMove st.hand allTheInfoAboutAvailablePieces st.dict st.lettersOnBoard pieces
 
-
-                //debugPrintWord word
-                debugPrint (word)
-
-
                 //let input = System.Console.ReadLine()
                 let move: (coord * (uint32 * (char * int))) list = RegEx.parseMove word
-                debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
-                send cstream (SMPlay move)
+
+                if word.Length > 0 then
+
+                    debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
+                    send cstream (SMPlay move)
+                else
+                    send cstream SMPass
+
+
+            else
+                debugPrint (
+                    sprintf " ############### It is player %s's turn ############## \n\n" ((string) State.playerTurn)
+                )
 
             let msg = recv cstream
             //debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
 
-
             match msg with
-            | RCM(CMPlaySuccess(ms, points, newPieces)) ->
+            | RCM(CMPlaySuccess(move, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
 
                 // UPDATE THE HAND:
-                // Extract piece IDs from each move
-                let playedPieceIds = ms |> List.map (fun (_, (uid: uint32, (_, _))) -> uid)
-
-                // make new list with played pieces from pieces on hand
-                let handWithRemovedPieces =
-                    playedPieceIds
-                    |> List.fold (fun hand (pieceId: uint32) -> MultiSet.removeSingle pieceId hand) (State.hand st)
-                // add the new pieces to this list
-                let handWithAddedAndRemovedPieces =
-                    newPieces
-                    |> List.fold
-                        (fun handWithRemovedPieces (pieceID: uint32, count: uint32) ->
-                            MultiSet.add pieceID count handWithRemovedPieces)
-                        (handWithRemovedPieces)
-                // At the end, set the State hand to this list.
-
-                //UPDATE THE BOARD:
-                let playedPieces = ms |> List.map (fun (coord, (_, (char, _))) -> (coord, char))
-
-                let updatedBoard: Map<coord, (uint32 * (char * int))> =
-                    List.fold
-                        (fun acc (coord, ((char, points))) -> Map.add coord (char, points) acc)
-                        st.lettersOnBoard
-                        ms
-
-                //printfn "Board State:"
-                //updatedBoard
-                //|> Map.iter (fun coord (pieceId, (char, points)) ->
-                //    printfn "Coordinate (%s): %c (%d points)" (coord.ToString()) (char: char) points)
-
+                let updatedHand = State.updateHand move st newPieces
 
                 //UDPDATE THE PLAYER NUMBER:
                 let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
 
+                // UPDATE THE PIECES ON THE BOARD:
+                let updatedPiecesOnBoard = State.updatePiecesOnBoard move st
+
                 // UPDATE THE STATE WITH THE NEW INFO
                 let st' =
                     { st with
-                        hand = handWithAddedAndRemovedPieces
+                        hand = updatedHand
                         playerTurn = nextPlayer
-                        lettersOnBoard = updatedBoard
+                        lettersOnBoard = updatedPiecesOnBoard
 
                     } // Update the state with the new hand, board, player turn
 
                 // Continue the game with the updated state
                 aux st' (st.playerTurn = st.playerNumber)
 
-            | RCM(CMPlayed(pid, ms, points)) ->
+            | RCM(CMPlayed(playerID, move, points)) ->
                 (* Successful play by other player. Update your state *)
-
-                //UPDATE THE BOARD:
-                let playedPieces = ms |> List.map (fun (coord, (_, (char, _))) -> (coord, char))
-
-                let updatedBoard =
-                    List.fold
-                        (fun acc (coord, ((char, points))) -> Map.add coord (char, points) acc)
-                        st.lettersOnBoard
-                        ms
 
                 //UDPDATE THE PLAYER NUMBER:
                 let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
+
+                //UPDATE THE BOARD:
+                let updatedPiecesOnBoard = State.updatePiecesOnBoard move st
 
                 let st' =
                     { st with
                         playerTurn = nextPlayer
-                        lettersOnBoard = updatedBoard } // Update the state with the new board, player turn
+                        lettersOnBoard = updatedPiecesOnBoard } // Update the state with the new board, player turn
 
                 aux st' (st.playerTurn = st.playerNumber)
+
+            | RCM(CMPassed(pid)) ->
+                debugPrint ("\n\n\n\n ################## PLAYER PASSED ###################### \n\n\n\n")
+                let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBSOBSOBSOBSOBS.. THIS DOESN'T MAKE SENSE. Different for different players ....
+                let st' = { st with playerTurn = nextPlayer } // Update the state with the new board, player turn
+
+                aux st' (st.playerTurn = st.playerNumber)
+
             | RCM(CMPlayFailed(pid, ms)) ->
                 (* Failed play. Update your state *)
                 //UDPDATE THE PLAYER NUMBER:
+
                 let nextPlayer = (st.playerNumber % st.numOfPlayers) + 1u //OBS! Should there be +1u here?
-                let st' = { st with playerTurn = nextPlayer } //Update the player turn
+                let st' = { st with playerTurn = nextPlayer } // Update the state with the new board, player turn
 
                 aux st' (st.playerTurn = st.playerNumber)
             | RCM(CMGameOver _) -> ()
@@ -981,27 +997,8 @@ module Scrabble =
 
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
-        fun () -> playGame cstream tiles (State.mkState lettersOnBoard dict playerNumber handSet numPlayers playerTurn)
-
-
-
-
-
-//This is what we need to do:
-
-//Create some board word lookup function which returns a list of all the letters and words on the board
-
-//for each of these, see if we can create a continuation starting with said word or letter.
-//We need to create some continuation function to step down in dict to get to the dict we need I guess?
-
-//While doing this, keep track of the coords and look up adjacent coords all the while.
-
-//If there is any adjacent neighbor, keep looking in that direction.
-
-//Then loop up that word in our dictionary. If it's not a word, no good.
-
-
-
-//Maybe we could change it so we are looking at point value rather than length of a word? Shouldn't be too difficult since we have the info...
-
-//Be able to pass when no move is valid...
+        fun () ->
+            playGame
+                cstream
+                tiles
+                (State.mkState lettersOnBoard dict playerNumber handSet numPlayers playerTurn timeout)

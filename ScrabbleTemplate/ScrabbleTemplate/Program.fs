@@ -1,4 +1,5 @@
 ﻿// Learn more about F# at http://fsharp.org
+//open ScrabbleDabbleDict
 
 let time f =
     let start = System.DateTime.Now
@@ -38,14 +39,14 @@ let main argv =
     let words = readLines "./Dictionaries/English.txt"
 
     let handSize = 7u
-    let timeout = None
+    let timeout = Some 5000u
     let tiles = ScrabbleUtil.English.tiles 1u
     let seed = None
     let port = 13001
 
     let dictAPI =
         // Uncomment if you have implemented a dictionary. last element None if you have not implemented a GADDAG
-        // Some (Dictionary.empty, Dictionary.insert, Dictionary.step, Some Dictionary.reverse)
+        //Some(ScrabbleDabbleDict.empty, ScrabbleDabbleDict.insert, ScrabbleDabbleDict.step, None)
         None
 
     let (dictionary, time) =
@@ -56,7 +57,7 @@ let main argv =
         [ ("ADabbleInScrabbleBot1", dictionary, ScrabbleBot.Scrabble.startGame) ]
 
     //let players =
-    //    spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
+    //    spawnMultiples "SrabbleDabbler" dictionary ScrabbleBot.Scrabble.startGame 2
 
 
     do ScrabbleServer.Comm.startGame board dictionary handSize timeout tiles seed port players
